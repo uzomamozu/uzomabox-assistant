@@ -1,0 +1,5 @@
+# Firma automática ad-hoc de los binarios al ejecutarlos con `cargo run` o
+# `cargo test` (`tauri dev` invoca `cargo run`, así que la app siempre arranca
+# firmada y el firewall de macOS deja pasar sus respuestas UDP).
+[target.'cfg(target_os = "macos")']
+runner = "../scripts/cargo-run-signed.sh"

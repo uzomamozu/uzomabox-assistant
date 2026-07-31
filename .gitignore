@@ -1,0 +1,12 @@
+# Dependencias y builds
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Sistema
+.DS_Store
+
+# Logs y temporales
+*.log
+nohup.out

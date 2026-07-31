@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos de la ventana principal: APIs core + bus de eventos (listen/emit) usado por discovery, conexiones y log.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:event:default"]
+}

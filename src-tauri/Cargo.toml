@@ -1,0 +1,27 @@
+[package]
+name = "uzomabox-assistant"
+version = "1.0.0"
+description = "UzomaBox Assistant - Art-Net LED controller management"
+edition = "2021"
+rust-version = "1.77.2"
+default-run = "uzomabox-assistant"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+if-addrs = "0.10"
+
+[features]
+# This feature is used for production builds where the dev server is not available
+custom-protocol = ["tauri/custom-protocol"]
+
+# wry 0.55.1 vendorizado con el parche de tauri-apps/wry#1744 (unwraps sobre
+# valores nil de WebKit en url_scheme_handler::start_task → SIGABRT). Quitar
+# cuando una release de wry incluya el fix.
+[patch.crates-io]
+wry = { path = "vendor/wry" }

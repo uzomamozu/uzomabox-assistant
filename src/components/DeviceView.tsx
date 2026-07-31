@@ -1,0 +1,98 @@
+import { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { t } from '../i18n/es';
+import { ipc, isTauri } from '../lib/ipc';
+import { useAppStore, type ConnState, type TabId } from '../store/appStore';
+import PlaceholderTab from './tabs/PlaceholderTab';
+import StatusTab from './tabs/StatusTab';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'red', label: t.device.tabs.red },
+  { id: 'leds', label: t.device.tabs.leds },
+  { id: 'artnet', label: t.device.tabs.artnet },
+  { id: 'playback', label: t.device.tabs.playback },
+  { id: 'grabacion', label: t.device.tabs.grabacion },
+  { id: 'test', label: t.device.tabs.test },
+  { id: 'estado', label: t.device.tabs.estado },
+];
+
+const CONN_STYLE: Record<ConnState, { dot: string; text: string; label: string }> = {
+  disconnected: { dot: 'bg-muted', text: 'text-muted', label: t.device.conn.disconnected },
+  connecting: { dot: 'bg-warn animate-pulse', text: 'text-warn', label: t.device.conn.connecting },
+  connected: { dot: 'bg-ok', text: 'text-ok', label: t.device.conn.connected },
+  lost: { dot: 'bg-danger animate-pulse', text: 'text-danger', label: t.device.conn.lost },
+};
+
+export default function DeviceView({ ip }: { ip: string }) {
+  const device = useAppStore((s) => s.devices[ip]);
+  const conn = useAppStore((s) => s.connState[ip] ?? 'disconnected');
+  const latency = useAppStore((s) => s.latency[ip]);
+  const activeTab = useAppStore((s) => s.activeTab);
+  const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const closeDevice = useAppStore((s) => s.closeDevice);
+
+  // Ciclo de vida de la conexión: conectar al entrar, cerrar limpio al salir.
+  useEffect(() => {
+    if (isTauri) void ipc.connect(ip);
+    return () => {
+      if (isTauri) void ipc.disconnect(ip);
+    };
+  }, [ip]);
+
+  const style = CONN_STYLE[conn];
+  const title = device?.nick?.trim() || device?.model?.trim() || ip;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Cabecera del dispositivo */}
+      <div className="flex items-center gap-4 border-b border-border bg-panel px-4 py-2.5">
+        <button type="button" className="btn" onClick={closeDevice}>
+          <ArrowLeft size={16} />
+          {t.device.back}
+        </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-semibold leading-tight">{title}</h1>
+          <p className="font-mono text-xs text-muted">{ip}</p>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          {conn === 'connected' && latency !== undefined && (
+            <span className="font-mono text-xs text-muted">{t.device.latency(latency)}</span>
+          )}
+          <span className={`flex items-center gap-2 text-sm ${style.text}`}>
+            <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true" />
+            {style.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Tira de pestañas */}
+      <div className="flex gap-1 border-b border-border bg-panel px-4 pt-2" role="tablist">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-t border-b-2 px-3 py-1.5 text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
+              activeTab === tab.id
+                ? 'border-accent text-fg'
+                : 'border-transparent text-muted hover:text-fg'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenido de la pestaña */}
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        {activeTab === 'estado' ? (
+          <StatusTab ip={ip} />
+        ) : (
+          <PlaceholderTab label={TABS.find((tab) => tab.id === activeTab)?.label ?? ''} />
+        )}
+      </div>
+    </div>
+  );
+}
