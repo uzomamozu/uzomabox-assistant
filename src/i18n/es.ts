@@ -76,8 +76,94 @@ export const t = {
   },
 
   placeholder: {
-    badge: 'M2/M3',
-    text: (tab: string) => `La configuración de «${tab}» estará disponible en M2/M3.`,
+    badge: 'M3',
+    text: (tab: string) => `La configuración de «${tab}» estará disponible en M3.`,
+  },
+
+  shared: {
+    apply: 'Aplicar',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    notConnected: 'Sin conexión con el dispositivo. Los controles se habilitarán al reconectar.',
+    rebooting: 'Reiniciando el dispositivo, reconectando…',
+    rebootWarn: 'El dispositivo se reiniciará al aplicar este cambio y la conexión se restablecerá automáticamente.',
+  },
+
+  red: {
+    identity: 'Identidad',
+    nickname: 'Nickname',
+    network: 'Red',
+    staticIp: 'IP estática',
+    mac: 'Dirección MAC',
+    macPlaceholder: 'AA:BB:CC:DD:EE:FF',
+    macBlindNote: 'El firmware v1 no expone la MAC actual; se escribe a ciegas.',
+    info: 'Información del dispositivo',
+    model: 'Modelo',
+    firmware: 'Firmware',
+    currentIp: 'IP actual',
+    outputs: 'Salidas',
+    temp: 'Temperatura',
+    tempUnavailable: 'no disponible',
+    maintenance: 'Mantenimiento',
+    restart: 'Reiniciar dispositivo',
+    restartNote:
+      'El protocolo v1 no tiene comando REBOOT: esto reenvía CONFIG:record_fps con su valor actual, que fuerza el reinicio.',
+    confirmIpTitle: 'Cambiar IP estática',
+    confirmIpBody:
+      'El dispositivo se reiniciará al aplicar la nueva IP y la conexión se interrumpirá unos segundos; la app reconectará automáticamente.',
+    confirmMacTitle: 'Escribir dirección MAC',
+    confirmMacBody:
+      'El dispositivo se reiniciará al aplicar la nueva MAC y la conexión se interrumpirá unos segundos; la app reconectará automáticamente.',
+    confirmRestartTitle: 'Reiniciar el dispositivo',
+    confirmRestartBody:
+      'La conexión se interrumpirá unos segundos y se restablecerá automáticamente. ¿Continuar?',
+    invalidIp: 'Introduzca una IPv4 válida (p. ej. 192.168.1.50)',
+    invalidMac: 'Formato esperado: AA:BB:CC:DD:EE:FF',
+  },
+
+  leds: {
+    strip: 'Tira de LEDs',
+    width: 'LEDs por tira',
+    widthHint: 'Rango válido: 1–1020 (170 px por universo × 6 universos).',
+    widthInvalid: 'Introduzca un entero entre 1 y 1020',
+    colorOrder: 'Orden de color',
+    confirmWidthTitle: 'Cambiar LEDs por tira',
+    confirmWidthBody:
+      'El dispositivo se reiniciará al aplicar este cambio y la conexión se interrumpirá unos segundos; la app reconectará automáticamente.',
+    outputMap: 'Mapa de salidas',
+    colOutput: 'Salida',
+    colActive: 'Activa',
+    colStart: 'Universo inicial',
+    colEnd: 'Universo final',
+    colEndChannel: 'Canal final',
+    colSubnet: 'Subnet:Univ',
+    startInvalid: '0–255',
+    universePending:
+      'El mapa de universos se ha guardado pero es inerte hasta reiniciar el dispositivo.',
+    restartNow: 'Reiniciar ahora',
+    confirmRestartTitle: 'Reiniciar el dispositivo',
+    confirmRestartBody: 'Se aplicará el nuevo mapa de universos. La conexión se restablecerá automáticamente. ¿Continuar?',
+  },
+
+  artnet: {
+    title: 'Modo ArtNet',
+    activate: 'Activar modo ArtNet',
+    active: 'Modo ArtNet activo',
+    currentMode: (mode: string) => `Modo actual: ${mode}`,
+    receiving: 'Recibiendo ArtNet',
+    idle: 'Sin actividad ArtNet',
+    fpsLabel: 'fps ArtNet',
+  },
+
+  test: {
+    pattern: 'Patrón de test',
+    patterns: ['Ciclo RGBW', 'Fade arcoíris', 'Rojo', 'Verde', 'Azul'],
+    output: 'Salida',
+    outputAll: 'Todas',
+    outputN: (n: number) => `Salida ${n}`,
+    start: 'Iniciar test',
+    stop: 'Detener test',
+    runningNote: 'Test en ejecución: la salida ArtNet está detenida.',
   },
 
   about: {

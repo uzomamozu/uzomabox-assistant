@@ -57,6 +57,7 @@ interface AppState {
   devices: Record<string, Device>;
   deviceFound: (device: Device) => void;
   removeDevice: (ip: string) => void;
+  setDeviceNick: (ip: string, nick: string) => void;
 
   adapters: Adapter[];
   setAdapters: (adapters: Adapter[]) => void;
@@ -117,6 +118,10 @@ export const useAppStore = create<AppState>((set) => ({
       delete devices[ip];
       return { devices };
     }),
+  setDeviceNick: (ip, nick) =>
+    set((s) =>
+      s.devices[ip] ? { devices: { ...s.devices, [ip]: { ...s.devices[ip], nick } } } : s,
+    ),
 
   adapters: [],
   setAdapters: (adapters) => set({ adapters }),

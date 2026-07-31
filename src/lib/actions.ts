@@ -1,6 +1,6 @@
 import { t } from '../i18n/es';
 import { ipc, isTauri } from './ipc';
-import { useAppStore } from '../store/appStore';
+import { useAppStore, type TabId } from '../store/appStore';
 
 /** Recarga la lista de adaptadores de red y mantiene una selección válida. */
 export async function refreshAdapters(): Promise<void> {
@@ -93,4 +93,52 @@ export async function removeDevice(ip: string): Promise<void> {
     }
   }
   s.removeDevice(ip);
+}
+
+/** Valores STATUS de demostración para la vista previa en navegador. */
+const DEMO_IP = '192.168.1.50';
+const DEMO_STATUS: Record<string, string> = {
+  mode: 'artnet',
+  ip: DEMO_IP,
+  led_width: '300',
+  fps: '41',
+  recording: '0',
+  playing: '0',
+  file: '',
+  frames: '0',
+  artnet_active: '1',
+  artnet_fps: '40',
+  color_order: 'RGB',
+  playback_speed: '1.00',
+  record_fps: '30',
+  record_time: '0',
+  start_universe: Array.from({ length: 16 }, (_, i) => i * 2).join(','),
+  file_pos: '0',
+  file_total: '0',
+  output_active: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0].join(','),
+  output_count: '8',
+};
+
+/**
+ * Vista previa en navegador (sin backend Tauri): siembra un dispositivo
+ * conectado con STATUS de demostración. Con `?tab=<id>` abre la vista del
+ * dispositivo directamente en esa pestaña (para capturas de pantalla).
+ */
+export function seedDemoIfNeeded(): void {
+  if (isTauri) return;
+  const s = useAppStore.getState();
+  if (!s.devices[DEMO_IP]) {
+    s.deviceFound({ model: 'UzomaBox', nick: 'Simulador (demo)', ip: DEMO_IP, fw: '2.0.0', temp: '0' });
+  }
+  s.setConnState(DEMO_IP, 'connected');
+  s.setLatency(DEMO_IP, 3);
+  s.statusUpdate(DEMO_IP, DEMO_STATUS);
+
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab) {
+    s.openDevice(DEMO_IP);
+    if (['red', 'leds', 'artnet', 'playback', 'grabacion', 'test', 'estado'].includes(tab)) {
+      s.setActiveTab(tab as TabId);
+    }
+  }
 }
