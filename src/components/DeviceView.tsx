@@ -4,10 +4,11 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { t } from '../i18n/es';
 import { ipc, isTauri } from '../lib/ipc';
 import { useAppStore, type ConnState, type TabId } from '../store/appStore';
-import PlaceholderTab from './tabs/PlaceholderTab';
 import ArtNetTab from './tabs/ArtNetTab';
 import GeneralTab from './tabs/GeneralTab';
+import GrabacionTab from './tabs/GrabacionTab';
 import LedsTab from './tabs/LedsTab';
+import PlaybackTab from './tabs/PlaybackTab';
 import StatusTab from './tabs/StatusTab';
 import TestTab from './tabs/TestTab';
 
@@ -123,12 +124,14 @@ export default function DeviceView({ ip }: { ip: string }) {
           <LedsTab ip={ip} />
         ) : activeTab === 'artnet' ? (
           <ArtNetTab ip={ip} />
+        ) : activeTab === 'playback' ? (
+          <PlaybackTab ip={ip} />
+        ) : activeTab === 'grabacion' ? (
+          <GrabacionTab ip={ip} />
         ) : activeTab === 'test' ? (
           <TestTab ip={ip} />
-        ) : activeTab === 'estado' ? (
-          <StatusTab ip={ip} />
         ) : (
-          <PlaceholderTab label={TABS.find((tab) => tab.id === activeTab)?.label ?? ''} />
+          <StatusTab ip={ip} />
         )}
       </div>
     </div>

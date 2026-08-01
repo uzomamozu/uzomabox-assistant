@@ -13,6 +13,7 @@ export const ipc = {
   disconnect: (ip: string) => invoke<void>('disconnect', { ip }),
   sendCommand: (ip: string, command: string) => invoke<void>('send_command', { ip, command }),
   identify: (ip: string) => invoke<void>('identify', { ip }),
+  listFiles: (ip: string) => invoke<string[]>('list_files', { ip }),
   openDeviceWindow: (ip: string, title: string) =>
     invoke<void>('open_device_window', { ip, title }),
 };

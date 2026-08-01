@@ -12,8 +12,8 @@ import dgram from 'node:dgram';
 import net from 'node:net';
 import os from 'node:os';
 
-const UDP_PORT = 7777;
-const TCP_PORT = 8888;
+const UDP_PORT = Number(process.env.UZOMA_SIM_UDP_PORT) || 7777;
+const TCP_PORT = Number(process.env.UZOMA_SIM_TCP_PORT) || 8888;
 const FIRMWARE = '2.0.0';
 const COLOR_ORDERS = ['RGB', 'GRB', 'BGR', 'RBG', 'GBR', 'BRG'];
 const MODES = ['artnet', 'playback', 'record', 'test'];

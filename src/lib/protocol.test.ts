@@ -4,6 +4,7 @@ import {
   buildOutputRows,
   clampTestOutput,
   computeOutputRow,
+  formatSize,
   isValidIpv4,
   isValidLedWidth,
   isValidMac,
@@ -159,5 +160,16 @@ describe('clampTestOutput', () => {
     expect(clampTestOutput(0, 8)).toBe(0);
     expect(clampTestOutput(TEST_OUTPUT_ALL, 8)).toBe(255);
     expect(clampTestOutput(5, 0)).toBe(0);
+  });
+});
+
+describe('formatSize', () => {
+  it('formatea B, KB y MB', () => {
+    expect(formatSize(0)).toBe('0 B');
+    expect(formatSize(512)).toBe('512 B');
+    expect(formatSize(1536)).toBe('1.5 KB');
+    expect(formatSize(2 * 1024 * 1024)).toBe('2.0 MB');
+    expect(formatSize(NaN)).toBe('—');
+    expect(formatSize(-1)).toBe('—');
   });
 });

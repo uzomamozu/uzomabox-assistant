@@ -89,6 +89,12 @@ async fn identify(app: AppHandle, ip: String) -> Result<(), String> {
     connection::identify_once(&app, &ip).await
 }
 
+/// Ask a connected device for its file list (LIST request/response).
+#[tauri::command]
+async fn list_files(state: State<'_, AppState>, ip: String) -> Result<Vec<String>, String> {
+    state.connections.list_files(&ip).await
+}
+
 /// Shared implementation for the `open_device_window` command.
 fn open_device_window_impl(
     app: &AppHandle,
@@ -144,6 +150,7 @@ fn main() {
             disconnect,
             send_command,
             identify,
+            list_files,
             open_device_window
         ])
         .build(tauri::generate_context!())

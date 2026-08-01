@@ -138,6 +138,66 @@ pub fn parse_discovery_reply(line: &str) -> Option<BTreeMap<String, String>> {
     }
 }
 
+/// State machine for the multi-line LIST reply: `OK:LIST`, one filename per
+/// line, `END:LIST`. Feed every received line while a LIST is in flight.
+#[derive(Debug, Default)]
+pub struct ListCollector {
+    files: Vec<String>,
+    active: bool,
+}
+
+impl ListCollector {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    /// Feed one received line.
+    ///
+    /// - Inactive: only `OK:LIST` matters (starts collection); anything else
+    ///   returns `None` (the line belongs to normal traffic).
+    /// - Active: filenames accumulate; `END:LIST` completes with
+    ///   `Some(Ok(files))`; protocol-looking lines (`OK:*`, `ERR:*`, `PONG`,
+    ///   `key=value`) abort with `Some(Err(..))` because a valid LIST reply
+    ///   can never contain them.
+    pub fn feed(&mut self, line: &str) -> Option<Result<Vec<String>, String>> {
+        let line = line.trim_end();
+        if !self.active {
+            if line == "OK:LIST" {
+                self.active = true;
+                self.files.clear();
+            }
+            return None;
+        }
+        if line == "END:LIST" {
+            self.active = false;
+            return Some(Ok(std::mem::take(&mut self.files)));
+        }
+        if line == "OK:LIST" {
+            self.active = false;
+            self.files.clear();
+            return Some(Err("LIST interrumpido por un nuevo OK:LIST".to_string()));
+        }
+        if let Some(detail) = line.strip_prefix("ERR:") {
+            self.active = false;
+            self.files.clear();
+            return Some(Err(detail.to_string()));
+        }
+        if line.starts_with("OK:") || line == "PONG" || parse_status_line(line).is_some() {
+            self.active = false;
+            self.files.clear();
+            return Some(Err(format!("línea inesperada dentro de LIST: {line}")));
+        }
+        if !line.is_empty() {
+            self.files.push(line.to_string());
+        }
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,5 +299,64 @@ mod tests {
             parse_reply_line("fps=40\r\n"),
             Reply::KeyValue("fps".into(), "40".into())
         );
+    }
+
+    #[test]
+    fn list_collector_happy_path() {
+        let mut c = ListCollector::new();
+        assert!(!c.is_active());
+        // Unrelated traffic before OK:LIST is ignored.
+        assert_eq!(c.feed("PONG"), None);
+        assert!(!c.is_active());
+
+        assert_eq!(c.feed("OK:LIST"), None);
+        assert!(c.is_active());
+        assert_eq!(c.feed("REC_001.BIN"), None);
+        assert_eq!(c.feed("REC_002.BIN"), None);
+        assert_eq!(c.feed("SHOW_DEMO.BIN"), None);
+        let done = c.feed("END:LIST").expect("END:LIST completes the reply");
+        assert_eq!(
+            done.unwrap(),
+            vec!["REC_001.BIN", "REC_002.BIN", "SHOW_DEMO.BIN"]
+        );
+        assert!(!c.is_active());
+    }
+
+    #[test]
+    fn list_collector_empty_list() {
+        let mut c = ListCollector::new();
+        c.feed("OK:LIST");
+        let done = c.feed("END:LIST").unwrap();
+        assert_eq!(done.unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn list_collector_err_aborts() {
+        let mut c = ListCollector::new();
+        c.feed("OK:LIST");
+        c.feed("REC_001.BIN");
+        let err = c.feed("ERR:sd busy").unwrap().unwrap_err();
+        assert_eq!(err, "sd busy");
+        assert!(!c.is_active());
+    }
+
+    #[test]
+    fn list_collector_rejects_protocol_lines_inside() {
+        for line in ["OK:STOP", "PONG", "mode=artnet"] {
+            let mut c = ListCollector::new();
+            c.feed("OK:LIST");
+            let err = c.feed(line).unwrap().unwrap_err();
+            assert!(err.contains("inesperada"), "line: {line}");
+            assert!(!c.is_active());
+        }
+    }
+
+    #[test]
+    fn list_collector_nested_ok_list_is_an_error() {
+        let mut c = ListCollector::new();
+        c.feed("OK:LIST");
+        c.feed("REC_001.BIN");
+        assert!(c.feed("OK:LIST").unwrap().is_err());
+        assert!(!c.is_active());
     }
 }

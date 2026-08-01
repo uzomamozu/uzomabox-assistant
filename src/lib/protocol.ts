@@ -144,3 +144,11 @@ export function clampTestOutput(index: number, outputCount: number): number {
   const maxIndex = Math.max(0, outputCount - 1);
   return Math.min(Math.max(0, index), maxIndex);
 }
+
+/** Formatea un tamaño/contador en unidades legibles (B, KB, MB). */
+export function formatSize(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return '—';
+  if (n < 1024) return `${Math.round(n)} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}

@@ -123,21 +123,46 @@ const DEMO_STATUS: Record<string, string> = {
   led_width: '300',
   fps: '41',
   recording: '0',
-  playing: '0',
-  file: '',
+  playing: '1',
+  file: 'REC_001.BIN',
   frames: '0',
   artnet_active: '1',
   artnet_fps: '40',
   color_order: 'RGB',
   playback_speed: '1.00',
   record_fps: '30',
-  record_time: '0',
+  record_time: '75',
   start_universe: Array.from({ length: 16 }, (_, i) => i * 2).join(','),
-  file_pos: '0',
-  file_total: '0',
+  file_pos: '1536',
+  file_total: '5120',
   output_active: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0].join(','),
   output_count: '8',
 };
+
+/** Lista de archivos de demostración (navegador); mutable para Eliminar. */
+const demoFiles = ['REC_001.BIN', 'REC_002.BIN', 'SHOW_DEMO.BIN'];
+
+/** Pide la lista de archivos del dispositivo (LIST request/response). */
+export async function fetchFileList(ip: string): Promise<string[]> {
+  if (!isTauri) return [...demoFiles];
+  return ipc.listFiles(ip);
+}
+
+/** Reproduce un archivo (PLAY:<file>). */
+export async function playFile(ip: string, file: string): Promise<void> {
+  if (!isTauri) return;
+  await ipc.sendCommand(ip, `PLAY:${file}`);
+}
+
+/** Elimina un archivo (DELETE:<file>); el llamador refresca la lista después. */
+export async function deleteFile(ip: string, file: string): Promise<void> {
+  if (!isTauri) {
+    const idx = demoFiles.indexOf(file);
+    if (idx >= 0) demoFiles.splice(idx, 1);
+    return;
+  }
+  await ipc.sendCommand(ip, `DELETE:${file}`);
+}
 
 /**
  * Vista previa en navegador (sin backend Tauri): siembra un dispositivo de
