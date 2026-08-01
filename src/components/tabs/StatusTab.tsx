@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Ban, LocateFixed } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { ipc, isTauri } from '../../lib/ipc';
 import { useAppStore } from '../../store/appStore';
 

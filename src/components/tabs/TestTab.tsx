@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Play, Square } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { ipc, isTauri } from '../../lib/ipc';
 import { clampTestOutput, TEST_OUTPUT_ALL } from '../../lib/protocol';
 import { useAppStore } from '../../store/appStore';

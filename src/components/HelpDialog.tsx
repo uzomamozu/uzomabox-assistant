@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { t } from '../i18n/es';
+import { t } from '../i18n';
 import { useAppStore } from '../store/appStore';
 
 export default function HelpDialog() {

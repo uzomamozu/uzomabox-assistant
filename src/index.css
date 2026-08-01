@@ -3,43 +3,23 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Paletas de tema. Todos los componentes consumen estas variables;
- * no se permiten colores literales fuera de este archivo.
+ * Paleta única (electric-cyan). Todos los componentes consumen estas
+ * variables; no se permiten colores literales fuera de este archivo.
  * ------------------------------------------------------------------------- */
 
 :root {
-  /* Colores semánticos (iguales en todos los temas) */
+  /* Colores semánticos */
   --color-ok: #34d399;
   --color-warn: #fbbf24;
   --color-danger: #f87171;
-}
 
-:root,
-:root[data-theme='uzoma-red'] {
-  --color-bg: #0d0f12;
-  --color-panel: #16191f;
-  --color-border: #262b33;
-  --color-text: #e6e8eb;
-  --color-muted: #8a919c;
-  --color-accent: #e5484d;
-}
-
-:root[data-theme='electric-cyan'] {
+  /* electric-cyan */
   --color-bg: #0b0e13;
   --color-panel: #12161f;
   --color-border: #232a38;
   --color-text: #e6e8eb;
   --color-muted: #8a919c;
   --color-accent: #22d3ee;
-}
-
-:root[data-theme='amber-stage'] {
-  --color-bg: #100e0b;
-  --color-panel: #1a1712;
-  --color-border: #2b261c;
-  --color-text: #ede8df;
-  --color-muted: #9c9484;
-  --color-accent: #f5a623;
 }
 
 html,

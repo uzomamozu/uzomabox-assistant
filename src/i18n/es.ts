@@ -1,9 +1,9 @@
 /**
- * Cadenas de UI en español (M1). M2 añadirá EN y un selector de idioma;
- * por eso todas las cadenas viven en este módulo.
+ * Cadenas de UI en español (idioma por defecto). La forma de este objeto
+ * define el tipo `Strings`, que también cumple `en.ts`.
  */
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
 export const t = {
   appName: 'UzomaBox Assistant',
@@ -11,7 +11,7 @@ export const t = {
   header: {
     help: 'Ayuda',
     about: 'Acerca de',
-    themeLabel: 'Tema',
+    langLabel: 'Idioma',
   },
 
   toolbar: {
@@ -220,9 +220,9 @@ export const t = {
     title: 'Ayuda',
     items: [
       'Pulse «Buscar controladores» para descubrir dispositivos UzomaBox en la red seleccionada.',
-      'Doble clic (o clic derecho → «Abrir configuración») sobre un controlador para abrir su vista de configuración.',
+      'Doble clic (o clic derecho → «Abrir configuración») sobre un controlador para abrir su ventana de configuración.',
       'En la pestaña «Estado» encontrará el estado en vivo y la consola TX/RX del protocolo.',
-      'El tema de color se cambia desde los selectores de la barra superior y se guarda automáticamente.',
+      'El idioma (ES/EN) se cambia desde el selector de la barra superior y se guarda automáticamente.',
     ],
     close: 'Cerrar',
   },
@@ -235,4 +235,7 @@ export const t = {
     selectAdapter: 'Seleccione un adaptador de red primero',
     searchingFrom: (ip: string) => `Buscando desde ${ip}…`,
   },
-} as const;
+};
+
+/** Forma del catálogo de cadenas: la cumplen es y en. */
+export type Strings = typeof t;

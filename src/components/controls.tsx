@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { Info, TriangleAlert, Unplug } from 'lucide-react';
-import { t } from '../i18n/es';
+import { t } from '../i18n';
 import { useAppStore } from '../store/appStore';
 
 /** Tarjeta de sección dentro de una pestaña. */

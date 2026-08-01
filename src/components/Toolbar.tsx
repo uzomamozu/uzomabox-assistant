@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, RefreshCw, Search } from 'lucide-react';
-import { t } from '../i18n/es';
+import { t } from '../i18n';
 import { addManualDevice, refreshAdapters, runDiscovery } from '../lib/actions';
 import { useAppStore } from '../store/appStore';
 

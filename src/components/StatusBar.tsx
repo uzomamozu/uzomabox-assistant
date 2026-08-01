@@ -1,4 +1,4 @@
-import { APP_VERSION, t } from '../i18n/es';
+import { APP_VERSION, t } from '../i18n';
 import { useAppStore } from '../store/appStore';
 
 export default function StatusBar() {

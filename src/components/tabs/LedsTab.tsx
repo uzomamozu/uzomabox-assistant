@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Power } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { useRebootWatch } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';
 import {

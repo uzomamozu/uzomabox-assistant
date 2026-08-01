@@ -1,0 +1,62 @@
+name: release
+
+# Build de instaladores al publicar un tag v* (p. ej. v1.1.0).
+# NOTA: los instaladores salen SIN FIRMA (ad-hoc) hasta añadir los certificados
+# (Apple Developer ID / certificado EV) como secrets del repo; macOS mostrará
+# el aviso de Gatekeeper y el firewall pedirá permiso en el primer arranque.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS (universal dmg)
+          - os: windows-latest
+            name: Windows (msi/nsis)
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # macos-latest es arm64: para el dmg universal hacen falta AMBOS targets
+      # (en runners Intel sería al revés; añadir los dos es inocuo).
+      - name: Add macOS universal Rust targets
+        if: matrix.os == 'macos-latest'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build macOS universal dmg
+        if: matrix.os == 'macos-latest'
+        run: npm run tauri build -- --target universal-apple-darwin
+
+      - name: Build Windows installers
+        if: matrix.os == 'windows-latest'
+        run: npm run tauri build
+
+      - name: Upload installers to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe

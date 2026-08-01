@@ -12,6 +12,7 @@ import {
   seedDeviceWindowDemo,
 } from './lib/actions';
 import { wireEvents } from './lib/ipc';
+import { useAppStore } from './store/appStore';
 
 // Enrutado por ventana (estilo Advatek): la ventana principal lista los
 // controladores; cada ventana `?device=<ip>` es la configuración de ese
@@ -19,7 +20,15 @@ import { wireEvents } from './lib/ipc';
 const deviceIp = new URLSearchParams(window.location.search).get('device');
 
 export default function App() {
+  // Al cambiar el idioma se remonta el árbol completo (key={lang}) para que
+  // todos los textos se relean del binding vivo `t`.
+  const lang = useAppStore((s) => s.lang);
+
   useEffect(() => {
+    // `?lang=es|en` fuerza el idioma (vista previa, capturas, enlaces).
+    const langParam = new URLSearchParams(window.location.search).get('lang');
+    if (langParam === 'es' || langParam === 'en') useAppStore.getState().setLang(langParam);
+
     if (deviceIp) {
       void wireEvents(deviceIp);
       seedDeviceWindowDemo(deviceIp);
@@ -34,14 +43,14 @@ export default function App() {
 
   if (deviceIp) {
     return (
-      <div className="flex h-full flex-col">
+      <div key={lang} className="flex h-full flex-col">
         <DeviceView ip={deviceIp} />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div key={lang} className="flex h-full flex-col">
       <Header />
       <div className="flex min-h-0 flex-1 flex-col">
         <MainView />

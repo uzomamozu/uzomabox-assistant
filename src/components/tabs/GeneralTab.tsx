@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Power } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { useRebootWatch, useSyncedValue } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';
 import { isValidIpv4, isValidMac } from '../../lib/protocol';

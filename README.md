@@ -34,7 +34,7 @@ Esto ya está **automatizado**, no requiere pasos manuales:
 - `src-tauri/.cargo/config.toml` registra un *runner* de cargo (`scripts/cargo-run-signed.sh`) que **firma el binario justo antes de ejecutarlo** en cada `cargo run`/`cargo test` — es decir, `npm run tauri dev` siempre arranca la app firmada, aunque recompile.
 - La firma usa el identificador estable `dev.uzomabox.assistant`, así que la regla de firewall (creada una sola vez por `scripts/sign-dev.sh`, que pide tu contraseña) sigue valiendo entre recompilaciones.
 - Si alguna vez ejecutas el binario directamente sin cargo, corre `npm run sign:dev` antes.
-- Diagnóstico: `src-tauri/src/bin/udp_diag.rs` prueba ida y vuelta UDP; el test `cargo test -- --ignored collects_simulator_replies` valida el discovery contra el simulador (requiere estar en la misma subred). En producción esto no aplica: la `.app` firmada con Developer ID (M4) no necesita nada de esto.
+- Diagnóstico: `src-tauri/examples/udp_diag.rs` (`cargo run --example udp_diag`) prueba ida y vuelta UDP; el test `cargo test -- --ignored collects_simulator_replies` valida el discovery contra el simulador (requiere estar en la misma subred). En producción esto no aplica: la `.app` firmada con Developer ID (M4) no necesita nada de esto.
 
 **Nota de red**: el discovery es por broadcast — la Mac y el dispositivo deben estar en la **misma subred** (p. ej. el UzomaBox físico en `192.168.1.211` solo aparece cuando la Mac está en `192.168.1.x`). Si cambias de red, pulsa «Actualizar adaptadores» o reinicia la app.
 
@@ -60,7 +60,10 @@ uzomabox-assistant/
 │   ├── main.tsx / App.tsx     # Entrada React y enrutado por ventana (?device=<ip>)
 │   ├── index.css              # Temas (variables CSS + data-theme) y clases base
 │   ├── assets/                # Copias de los logos usadas por la app
-│   ├── i18n/es.ts             # Todas las cadenas de UI (ES; EN llega en M2)
+│   ├── i18n/                  # Catálogos de cadenas ES/EN + test de paridad
+│   │   ├── es.ts              # Español (define el tipo Strings)
+│   │   ├── en.ts              # English (cumple Strings)
+│   │   └── index.ts           # Binding vivo `t` + setI18nLang
 │   ├── store/appStore.ts      # Estado global (Zustand): dispositivos, conexiones, tema
 │   ├── lib/
 │   │   ├── ipc.ts             # Wrappers de comandos Tauri + suscripción a eventos (con filtro por IP)
@@ -106,5 +109,30 @@ uzomabox-assistant/
 - **Pestañas del dispositivo**: General (antes «Red»: nickname, IP/MAC, reinicio), LEDs, ArtNet, Test, Estado funcionales; Playback y Grabación llegan en M3.
 - **Temperatura oculta**: el firmware v1 siempre envía `TEMP=0` (sin sensor cableado), así que la UI no la muestra (ni columna en la tabla ni fila en General). Se sigue parseando/guardando en el store para cuando la Fase 2 exponga el sensor interno del Teensy.
 - **Tabla de salidas (LEDs)**: muestra exactamente `output_count` filas; los `CONFIG:*` CSV siempre envían las 16 entradas, conservando en las filas ocultas los últimos valores conocidos de STATUS (`buildCsvPreserving` en `lib/protocol.ts`).
-- **Temas**: tres paletas oscuras conmutables al instante desde la barra superior (`electric-cyan` por defecto, `uzoma-red`, `amber-stage`), persistidas en `localStorage` vía variables CSS y `data-theme`.
+- **Idioma ES/EN**: selector segmentado en la barra superior, persistido en `localStorage`. Las cadenas viven en `src/i18n/` (`es.ts` define el tipo `Strings`, `en.ts` lo cumple, `index.ts` expone el binding vivo `t`); un test de vitest garantiza la paridad de claves entre idiomas.
+- **Tema único fijo**: paleta `electric-cyan` como variables CSS en `:root` (`src/index.css`); sin selector de tema.
 - **wry vendorizado** (`src-tauri/vendor/wry` + `[patch.crates-io]` en `Cargo.toml`): wry 0.55.1 con el parche de [tauri-apps/wry#1744](https://github.com/tauri-apps/wry/pull/1744) — sin él, la app abortaba (`panic_cannot_unwind` en `url_scheme_handler::start_task`) cuando WebKit entregaba una petición de esquema con URL/método/header nil, típicamente al abrir la vista de dispositivo. Quitar cuando una release oficial de wry incluya el fix.
+
+## Empaquetado (instaladores)
+
+### DMG local (macOS)
+
+```bash
+source $HOME/.cargo/env
+rustup target add aarch64-apple-darwin   # una sola vez, para el build universal
+npm run tauri build -- --target universal-apple-darwin
+# sin --target: build solo para la arquitectura actual (más rápido)
+```
+
+El DMG queda en `src-tauri/target/release/bundle/dmg/`. Los iconos se generan desde el logo vertical: `npm run tauri icon <png-cuadrado>`.
+
+### CI (GitHub Actions)
+
+`.github/workflows/release.yml` construye los instaladores al publicar un tag `v*`: **macOS** (dmg universal) y **Windows** (msi/nsis), y los sube al GitHub Release del tag (`softprops/action-gh-release`). Para publicar: `git tag v1.1.0 && git push origin v1.1.0`.
+
+### Avisos de primera ejecución (instaladores sin firma)
+
+Los instaladores salen **sin firma** (ad-hoc) hasta que se añadan los certificados (Apple Developer ID / EV) como secrets:
+
+- **macOS**: Gatekeeper avisará ("app de desarrollador no identificado") — abrir con clic derecho → Abrir. El firewall (ALF) además pedirá permitir conexiones entrantes en el primer arranque; es necesario para el discovery UDP.
+- **Windows**: SmartScreen avisará ("Windows protegió su PC") → Más información → Ejecutar de todas formas.

@@ -151,6 +151,8 @@ impl ListCollector {
         Self::default()
     }
 
+    /// True mientras hay una recolección en curso (usado por los tests).
+    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         self.active
     }

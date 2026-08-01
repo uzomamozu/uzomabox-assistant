@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import vertLogo from '../assets/vert.png';
-import { APP_VERSION, t } from '../i18n/es';
+import { APP_VERSION, t } from '../i18n';
 import { useAppStore } from '../store/appStore';
 
 export default function AboutDialog() {

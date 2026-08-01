@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, LocateFixed, Settings2, Trash2 } from 'lucide-react';
-import { t } from '../i18n/es';
+import { t } from '../i18n';
 import { identifyDevice, openDeviceWindow, removeDevice } from '../lib/actions';
 import { useAppStore, type Device } from '../store/appStore';
 import ContextMenu from './ContextMenu';
@@ -9,12 +9,7 @@ import ContextMenu from './ContextMenu';
 // se sigue almacenando para cuando el firmware exponga el sensor del Teensy.
 type SortKey = 'model' | 'nick' | 'ip' | 'fw';
 
-const COLUMNS: { id: SortKey; label: string }[] = [
-  { id: 'model', label: t.table.model },
-  { id: 'nick', label: t.table.nick },
-  { id: 'ip', label: t.table.ip },
-  { id: 'fw', label: t.table.fw },
-];
+const SORT_KEYS: SortKey[] = ['model', 'nick', 'ip', 'fw'];
 
 function compareIp(a: string, b: string): number {
   const pa = a.split('.').map(Number);
@@ -33,6 +28,9 @@ export default function DeviceTable() {
   const [sortKey, setSortKey] = useState<SortKey>('ip');
   const [sortAsc, setSortAsc] = useState(true);
   const [menu, setMenu] = useState<{ x: number; y: number; ip: string } | null>(null);
+
+  // Etiquetas dentro del render: al cambiar el idioma se releen de `t`.
+  const columns = SORT_KEYS.map((id) => ({ id, label: t.table[id] }));
 
   const rows = useMemo(() => {
     const list = Object.values(devices);
@@ -63,7 +61,7 @@ export default function DeviceTable() {
       <table className="w-full border-collapse text-left text-sm">
         <thead className="sticky top-0 z-10 bg-panel">
           <tr>
-            {COLUMNS.map((col) => (
+            {columns.map((col) => (
               <th
                 key={col.id}
                 className="cursor-pointer select-none border-b border-border px-4 py-2.5 font-medium text-muted transition-colors duration-150 hover:text-fg"
@@ -81,7 +79,7 @@ export default function DeviceTable() {
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={COLUMNS.length} className="px-4 py-10 text-center text-muted">
+              <td colSpan={columns.length} className="px-4 py-10 text-center text-muted">
                 {t.table.empty}
               </td>
             </tr>

@@ -1,12 +1,5 @@
 import { create } from 'zustand';
-
-export type ThemeName = 'uzoma-red' | 'electric-cyan' | 'amber-stage';
-
-export const THEMES: { id: ThemeName; label: string; swatch: string }[] = [
-  { id: 'uzoma-red', label: 'Uzoma Red', swatch: '#E5484D' },
-  { id: 'electric-cyan', label: 'Electric Cyan', swatch: '#22D3EE' },
-  { id: 'amber-stage', label: 'Amber Stage', swatch: '#F5A623' },
-];
+import { setI18nLang, type Lang } from '../i18n';
 
 export interface Device {
   model: string;
@@ -32,25 +25,21 @@ export interface LogLine {
 export type TabId = 'general' | 'leds' | 'artnet' | 'playback' | 'grabacion' | 'test' | 'estado';
 
 const MAX_LOG_LINES = 500;
-const THEME_STORAGE_KEY = 'uzomabox-theme';
+const LANG_STORAGE_KEY = 'uzomabox-lang';
 
-function initialTheme(): ThemeName {
+function initialLang(): Lang {
   try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'uzoma-red' || saved === 'electric-cyan' || saved === 'amber-stage') return saved;
+    const saved = localStorage.getItem(LANG_STORAGE_KEY);
+    if (saved === 'es' || saved === 'en') return saved;
   } catch {
-    // localStorage no disponible: usar el tema por defecto
+    // localStorage no disponible: usar el idioma por defecto
   }
-  return 'electric-cyan';
-}
-
-function applyTheme(theme: ThemeName) {
-  document.documentElement.dataset.theme = theme;
+  return 'es';
 }
 
 interface AppState {
-  theme: ThemeName;
-  setTheme: (theme: ThemeName) => void;
+  lang: Lang;
+  setLang: (lang: Lang) => void;
 
   devices: Record<string, Device>;
   deviceFound: (device: Device) => void;
@@ -88,19 +77,19 @@ interface AppState {
   setHelpOpen: (open: boolean) => void;
 }
 
-const theme = initialTheme();
-applyTheme(theme);
+const lang = initialLang();
+setI18nLang(lang);
 
 export const useAppStore = create<AppState>((set) => ({
-  theme,
-  setTheme: (next) => {
-    applyTheme(next);
+  lang,
+  setLang: (next) => {
+    setI18nLang(next);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
+      localStorage.setItem(LANG_STORAGE_KEY, next);
     } catch {
-      // ignorar: la persistencia del tema es best-effort
+      // ignorar: la persistencia del idioma es best-effort
     }
-    set({ theme: next });
+    set({ lang: next });
   },
 
   devices: {},

@@ -1,4 +1,4 @@
-import { t } from '../i18n/es';
+import { t } from '../i18n';
 import { ipc, isTauri } from './ipc';
 import { useAppStore, type TabId } from '../store/appStore';
 

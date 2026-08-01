@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Layers, Play, RefreshCw, Square, Trash2 } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { deleteFile, fetchFileList, playFile } from '../../lib/actions';
 import { useSyncedValue } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';

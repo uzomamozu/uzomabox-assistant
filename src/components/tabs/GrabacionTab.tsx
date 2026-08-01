@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Circle, Disc, Square } from 'lucide-react';
-import { t } from '../../i18n/es';
+import { t } from '../../i18n';
 import { useRebootWatch, useSyncedValue } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';
 import { useAppStore } from '../../store/appStore';
