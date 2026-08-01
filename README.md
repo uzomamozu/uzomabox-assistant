@@ -57,33 +57,41 @@ uzomabox-assistant/
 ├── scripts/
 │   └── sign-dev.sh            # Firma ad-hoc del binario dev + regla de firewall (tras cada recompilación)
 ├── src/
-│   ├── main.tsx / App.tsx     # Entrada React y conmutación de vistas
+│   ├── main.tsx / App.tsx     # Entrada React y enrutado por ventana (?device=<ip>)
 │   ├── index.css              # Temas (variables CSS + data-theme) y clases base
 │   ├── assets/                # Copias de los logos usadas por la app
 │   ├── i18n/es.ts             # Todas las cadenas de UI (ES; EN llega en M2)
 │   ├── store/appStore.ts      # Estado global (Zustand): dispositivos, conexiones, tema
 │   ├── lib/
-│   │   ├── ipc.ts             # Wrappers de comandos Tauri + suscripción a eventos
-│   │   └── actions.ts         # Acciones de UI (descubrir, agregar IP, identificar…)
+│   │   ├── ipc.ts             # Wrappers de comandos Tauri + suscripción a eventos (con filtro por IP)
+│   │   ├── actions.ts         # Acciones de UI (descubrir, agregar IP, abrir ventana de dispositivo…)
+│   │   ├── protocol.ts        # Lógica pura: validadores IP/MAC, CSV, matemática de universos
+│   │   ├── protocol.test.ts   # Tests vitest de protocol.ts (`npm test`)
+│   │   └── hooks.ts           # useSyncedValue (dirty flags) y useRebootWatch (ciclo de reinicio)
 │   └── components/
 │       ├── Header.tsx         # Logo horizontal, selector de tema (3 paletas), Ayuda/Acerca de
 │       ├── MainView.tsx       # Vista principal (toolbar + tabla)
 │       ├── Toolbar.tsx        # Buscar controladores, adaptador, actualizar, agregar por IP
-│       ├── DeviceTable.tsx    # Tabla ordenable + menú contextual
+│       ├── DeviceTable.tsx    # Tabla ordenable + menú contextual (sin columna Temp, ver notas)
 │       ├── ContextMenu.tsx    # Menú contextual genérico
 │       ├── StatusBar.tsx      # Barra de estado inferior
 │       ├── AboutDialog.tsx    # Diálogo Acerca de (logo vertical)
 │       ├── HelpDialog.tsx     # Diálogo de ayuda
-│       ├── DeviceView.tsx     # Vista de dispositivo + tira de pestañas
+│       ├── controls.tsx       # Section, Field, Notice, TabShell, ConfirmDialog
+│       ├── DeviceView.tsx     # Vista de dispositivo (ventana propia) + tira de pestañas
 │       └── tabs/
-│           ├── StatusTab.tsx  # Pestaña Estado: grid STATUS, Identify, consola TX/RX
-│           └── PlaceholderTab.tsx  # Marcador M2/M3 para el resto de pestañas
+│           ├── GeneralTab.tsx # General: nickname, IP/MAC, info, reinicio
+│           ├── LedsTab.tsx    # LEDs: ancho de tira, orden de color, mapa de salidas (output_count filas)
+│           ├── ArtNetTab.tsx  # ArtNet: modo + FPS en vivo
+│           ├── TestTab.tsx    # Test: patrón/salida/modo test
+│           ├── StatusTab.tsx  # Estado: grid STATUS, Identify (+ pista), consola TX/RX
+│           └── PlaceholderTab.tsx  # Marcador M3 (Playback, Grabación)
 └── src-tauri/
     ├── Cargo.toml / tauri.conf.json / build.rs
     ├── capabilities/default.json  # Permisos Tauri 2: core + bus de eventos (sin esto listen() es rechazado y la app queda muda)
     ├── icons/icon.png
     └── src/
-        ├── main.rs            # Comandos Tauri + ciclo de vida de la app
+        ├── main.rs            # Comandos Tauri (incl. open_device_window) + ciclo de vida de la app
         ├── protocol.rs        # Protocolo de líneas v1 (encode/decode + tests)
         ├── discovery.rs       # Descubrimiento UDP 7777 (broadcast UZOMA:SEARCH)
         ├── connection.rs      # Worker TCP persistente por dispositivo (reconexión, PING, STATUS)
@@ -92,7 +100,11 @@ uzomabox-assistant/
 
 ## Notas de arquitectura
 
-- **Cero E/S de red en el hilo de UI**: todos los sockets viven en Rust (tokio). El frontend solo invoca comandos (`list_adapters`, `discover`, `add_manual_device`, `connect`, `disconnect`, `send_command`, `identify`) y se suscribe a eventos (`device_found`, `discovery_status`, `connection_state`, `latency`, `status_update`, `log_line`).
-- El firmware solo admite **un cliente TCP** a la vez: el worker cierra el socket limpiamente al desconectar, cambiar de vista o cerrar la app.
+- **Multi-ventana por controlador** (estilo Advatek): la ventana principal solo lista controladores; doble clic o «Abrir configuración» invoca `open_device_window`, que crea (o enfoca, sin duplicar) una ventana OS `device-<ip>` con URL `?device=<ip>` (~940×760). Cada ventana tiene su propio contexto JS/store y filtra eventos por IP (`wireEvents(ip)`); al cerrarse, Rust desconecta el dispositivo vía hook de `WindowEvent::Destroyed` (limpieza robusta aunque React no se desmonte).
+- **Cero E/S de red en el hilo de UI**: todos los sockets viven en Rust (tokio). El frontend solo invoca comandos (`list_adapters`, `discover`, `add_manual_device`, `connect`, `disconnect`, `send_command`, `identify`, `open_device_window`) y se suscribe a eventos (`device_found`, `discovery_status`, `connection_state`, `latency`, `status_update`, `log_line`).
+- El firmware solo admite **un cliente TCP** a la vez: el worker cierra el socket limpiamente al desconectar o cerrar la ventana/app.
+- **Pestañas del dispositivo**: General (antes «Red»: nickname, IP/MAC, reinicio), LEDs, ArtNet, Test, Estado funcionales; Playback y Grabación llegan en M3.
+- **Temperatura oculta**: el firmware v1 siempre envía `TEMP=0` (sin sensor cableado), así que la UI no la muestra (ni columna en la tabla ni fila en General). Se sigue parseando/guardando en el store para cuando la Fase 2 exponga el sensor interno del Teensy.
+- **Tabla de salidas (LEDs)**: muestra exactamente `output_count` filas; los `CONFIG:*` CSV siempre envían las 16 entradas, conservando en las filas ocultas los últimos valores conocidos de STATUS (`buildCsvPreserving` en `lib/protocol.ts`).
 - **Temas**: tres paletas oscuras conmutables al instante desde la barra superior (`electric-cyan` por defecto, `uzoma-red`, `amber-stage`), persistidas en `localStorage` vía variables CSS y `data-theme`.
 - **wry vendorizado** (`src-tauri/vendor/wry` + `[patch.crates-io]` en `Cargo.toml`): wry 0.55.1 con el parche de [tauri-apps/wry#1744](https://github.com/tauri-apps/wry/pull/1744) — sin él, la app abortaba (`panic_cannot_unwind` en `url_scheme_handler::start_task`) cuando WebKit entregaba una petición de esquema con URL/método/header nil, típicamente al abrir la vista de dispositivo. Quitar cuando una release oficial de wry incluya el fix.

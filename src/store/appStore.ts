@@ -29,9 +29,7 @@ export interface LogLine {
   text: string;
 }
 
-export type TabId = 'red' | 'leds' | 'artnet' | 'playback' | 'grabacion' | 'test' | 'estado';
-
-export type View = { kind: 'main' } | { kind: 'device'; ip: string };
+export type TabId = 'general' | 'leds' | 'artnet' | 'playback' | 'grabacion' | 'test' | 'estado';
 
 const MAX_LOG_LINES = 500;
 const THEME_STORAGE_KEY = 'uzomabox-theme';
@@ -67,10 +65,6 @@ interface AppState {
   discovering: boolean;
   discoveryMessage: string;
   setDiscovery: (running: boolean, message: string) => void;
-
-  view: View;
-  openDevice: (ip: string) => void;
-  closeDevice: () => void;
 
   connState: Record<string, ConnState>;
   setConnState: (ip: string, state: ConnState) => void;
@@ -131,10 +125,6 @@ export const useAppStore = create<AppState>((set) => ({
   discovering: false,
   discoveryMessage: '',
   setDiscovery: (running, message) => set({ discovering: running, discoveryMessage: message }),
-
-  view: { kind: 'main' },
-  openDevice: (ip) => set({ view: { kind: 'device', ip }, activeTab: 'estado' }),
-  closeDevice: () => set({ view: { kind: 'main' } }),
 
   connState: {},
   setConnState: (ip, state) => set((s) => ({ connState: { ...s.connState, [ip]: state } })),

@@ -121,6 +121,22 @@ export function buildOutputRows(
   );
 }
 
+/**
+ * Construye un CSV completo de `total` entradas para CONFIG: las filas
+ * visibles (`visible`, las que muestra la tabla = output_count) salen del
+ * estado editado; las filas ocultas conservan su último valor conocido de
+ * STATUS (`lastKnown`, 0 si nunca hubo volcado).
+ */
+export function buildCsvPreserving(
+  visible: number[],
+  lastKnown: number[] | null,
+  total: number = OUTPUT_ROWS,
+): number[] {
+  return Array.from({ length: total }, (_, i) =>
+    i < visible.length ? visible[i] : (lastKnown?.[i] ?? 0),
+  );
+}
+
 /** Clamp del selector de salida de test: nunca enviar un índice >= outputCount
  *  (bug de desbordamiento del firmware v1). */
 export function clampTestOutput(index: number, outputCount: number): number {

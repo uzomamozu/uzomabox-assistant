@@ -29,7 +29,6 @@ export const t = {
     nick: 'Nickname',
     ip: 'IP',
     fw: 'Firmware',
-    temp: 'Temp',
     unknown: '—',
     empty: 'Sin controladores. Pulse «Buscar controladores» para descubrir dispositivos en la red.',
   },
@@ -48,8 +47,9 @@ export const t = {
 
   device: {
     back: 'Volver',
+    close: 'Cerrar',
     tabs: {
-      red: 'Red',
+      general: 'General',
       leds: 'LEDs',
       artnet: 'ArtNet',
       playback: 'Playback',
@@ -69,6 +69,7 @@ export const t = {
   estado: {
     title: 'Estado del dispositivo',
     identify: 'Identificar',
+    identifyHint: 'Hace parpadear el LED de la placa para localizar físicamente el dispositivo.',
     consoleTitle: 'Consola TX/RX',
     clear: 'Limpiar',
     noData: 'Esperando el primer volcado STATUS…',
@@ -89,8 +90,7 @@ export const t = {
     rebootWarn: 'El dispositivo se reiniciará al aplicar este cambio y la conexión se restablecerá automáticamente.',
   },
 
-  red: {
-    identity: 'Identidad',
+  general: {
     nickname: 'Nickname',
     network: 'Red',
     staticIp: 'IP estática',
@@ -100,10 +100,7 @@ export const t = {
     info: 'Información del dispositivo',
     model: 'Modelo',
     firmware: 'Firmware',
-    currentIp: 'IP actual',
     outputs: 'Salidas',
-    temp: 'Temperatura',
-    tempUnavailable: 'no disponible',
     maintenance: 'Mantenimiento',
     restart: 'Reiniciar dispositivo',
     restartNote:

@@ -95,6 +95,26 @@ export async function removeDevice(ip: string): Promise<void> {
   s.removeDevice(ip);
 }
 
+/**
+ * Abre la ventana de configuración del dispositivo (una ventana OS por
+ * controlador; si ya existe, el backend la enfoca).
+ */
+export async function openDeviceWindow(ip: string): Promise<void> {
+  const s = useAppStore.getState();
+  const device = s.devices[ip];
+  const name = device?.nick?.trim() || device?.model?.trim() || ip;
+  if (!isTauri) {
+    // Vista previa en navegador: la "ventana" es otra pestaña del navegador.
+    window.open(`?device=${encodeURIComponent(ip)}`, '_blank');
+    return;
+  }
+  try {
+    await ipc.openDeviceWindow(ip, `UzomaBox — ${name}`);
+  } catch (err) {
+    s.setDiscovery(false, String(err));
+  }
+}
+
 /** Valores STATUS de demostración para la vista previa en navegador. */
 const DEMO_IP = '192.168.1.50';
 const DEMO_STATUS: Record<string, string> = {
@@ -120,9 +140,8 @@ const DEMO_STATUS: Record<string, string> = {
 };
 
 /**
- * Vista previa en navegador (sin backend Tauri): siembra un dispositivo
- * conectado con STATUS de demostración. Con `?tab=<id>` abre la vista del
- * dispositivo directamente en esa pestaña (para capturas de pantalla).
+ * Vista previa en navegador (sin backend Tauri): siembra un dispositivo de
+ * demostración para la ventana principal.
  */
 export function seedDemoIfNeeded(): void {
   if (isTauri) return;
@@ -130,15 +149,27 @@ export function seedDemoIfNeeded(): void {
   if (!s.devices[DEMO_IP]) {
     s.deviceFound({ model: 'UzomaBox', nick: 'Simulador (demo)', ip: DEMO_IP, fw: '2.0.0', temp: '0' });
   }
-  s.setConnState(DEMO_IP, 'connected');
-  s.setLatency(DEMO_IP, 3);
-  s.statusUpdate(DEMO_IP, DEMO_STATUS);
+}
+
+const VALID_TABS: TabId[] = ['general', 'leds', 'artnet', 'playback', 'grabacion', 'test', 'estado'];
+
+/**
+ * Vista previa en navegador de una ventana de dispositivo (`?device=<ip>`):
+ * siembra dispositivo, conexión y STATUS de demostración para esa IP.
+ * Con `&tab=<id>` selecciona la pestaña inicial (para capturas de pantalla).
+ */
+export function seedDeviceWindowDemo(ip: string): void {
+  if (isTauri) return;
+  const s = useAppStore.getState();
+  if (!s.devices[ip]) {
+    s.deviceFound({ model: 'UzomaBox', nick: 'Simulador (demo)', ip, fw: '2.0.0', temp: '0' });
+  }
+  s.setConnState(ip, 'connected');
+  s.setLatency(ip, 3);
+  s.statusUpdate(ip, DEMO_STATUS);
 
   const tab = new URLSearchParams(window.location.search).get('tab');
-  if (tab) {
-    s.openDevice(DEMO_IP);
-    if (['red', 'leds', 'artnet', 'playback', 'grabacion', 'test', 'estado'].includes(tab)) {
-      s.setActiveTab(tab as TabId);
-    }
+  if (tab && VALID_TABS.includes(tab as TabId)) {
+    s.setActiveTab(tab as TabId);
   }
 }

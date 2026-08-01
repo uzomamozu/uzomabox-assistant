@@ -1,18 +1,19 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, LocateFixed, Settings2, Trash2 } from 'lucide-react';
 import { t } from '../i18n/es';
-import { identifyDevice, removeDevice } from '../lib/actions';
+import { identifyDevice, openDeviceWindow, removeDevice } from '../lib/actions';
 import { useAppStore, type Device } from '../store/appStore';
 import ContextMenu from './ContextMenu';
 
-type SortKey = 'model' | 'nick' | 'ip' | 'fw' | 'temp';
+// Nota: la temperatura no se muestra (el firmware v1 siempre envía TEMP=0);
+// se sigue almacenando para cuando el firmware exponga el sensor del Teensy.
+type SortKey = 'model' | 'nick' | 'ip' | 'fw';
 
 const COLUMNS: { id: SortKey; label: string }[] = [
   { id: 'model', label: t.table.model },
   { id: 'nick', label: t.table.nick },
   { id: 'ip', label: t.table.ip },
   { id: 'fw', label: t.table.fw },
-  { id: 'temp', label: t.table.temp },
 ];
 
 function compareIp(a: string, b: string): number {
@@ -29,7 +30,6 @@ const cell = (value: string) => (value.trim() === '' ? t.table.unknown : value);
 
 export default function DeviceTable() {
   const devices = useAppStore((s) => s.devices);
-  const openDevice = useAppStore((s) => s.openDevice);
   const [sortKey, setSortKey] = useState<SortKey>('ip');
   const [sortAsc, setSortAsc] = useState(true);
   const [menu, setMenu] = useState<{ x: number; y: number; ip: string } | null>(null);
@@ -90,14 +90,13 @@ export default function DeviceTable() {
             <tr
               key={d.ip}
               className="cursor-pointer border-b border-border transition-colors duration-150 last:border-0 hover:bg-bg"
-              onDoubleClick={() => openDevice(d.ip)}
+              onDoubleClick={() => void openDeviceWindow(d.ip)}
               onContextMenu={(e) => openMenu(e, d.ip)}
             >
               <td className="px-4 py-2.5">{cell(d.model)}</td>
               <td className="px-4 py-2.5">{cell(d.nick)}</td>
               <td className="px-4 py-2.5 font-mono text-[13px]">{d.ip}</td>
               <td className="px-4 py-2.5">{cell(d.fw)}</td>
-              <td className="px-4 py-2.5">{cell(d.temp)}</td>
             </tr>
           ))}
         </tbody>
@@ -112,7 +111,7 @@ export default function DeviceTable() {
             {
               label: t.menu.open,
               icon: Settings2,
-              onClick: () => openDevice(menu.ip),
+              onClick: () => void openDeviceWindow(menu.ip),
             },
             {
               label: t.menu.identify,

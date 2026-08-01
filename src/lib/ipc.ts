@@ -13,33 +13,49 @@ export const ipc = {
   disconnect: (ip: string) => invoke<void>('disconnect', { ip }),
   sendCommand: (ip: string, command: string) => invoke<void>('send_command', { ip, command }),
   identify: (ip: string) => invoke<void>('identify', { ip }),
+  openDeviceWindow: (ip: string, title: string) =>
+    invoke<void>('open_device_window', { ip, title }),
 };
 
 let wired = false;
 
-/** Suscribe el store a todos los eventos del backend. Idempotente. */
-export async function wireEvents(): Promise<void> {
+/**
+ * Suscribe el store a los eventos del backend. Idempotente.
+ * Con `ipFilter` (ventana de dispositivo) solo se procesan los eventos de esa
+ * IP y se ignoran los de descubrimiento, que solo usa la ventana principal.
+ */
+export async function wireEvents(ipFilter?: string): Promise<void> {
   if (!isTauri || wired) return;
   wired = true;
   const s = () => useAppStore.getState();
+  const forIp = <P extends { ip: string }>(handler: (payload: P) => void) => {
+    return (e: { payload: P }) => {
+      if (!ipFilter || e.payload.ip === ipFilter) handler(e.payload);
+    };
+  };
 
   try {
-    await listen<Device>('device_found', (e) => s().deviceFound(e.payload));
-    await listen<{ running: boolean; message: string }>('discovery_status', (e) =>
-      s().setDiscovery(e.payload.running, e.payload.message),
+    if (!ipFilter) {
+      await listen<Device>('device_found', (e) => s().deviceFound(e.payload));
+      await listen<{ running: boolean; message: string }>('discovery_status', (e) =>
+        s().setDiscovery(e.payload.running, e.payload.message),
+      );
+    }
+    await listen<{ ip: string; state: ConnState }>(
+      'connection_state',
+      forIp((p) => s().setConnState(p.ip, p.state)),
     );
-    await listen<{ ip: string; state: ConnState }>('connection_state', (e) =>
-      s().setConnState(e.payload.ip, e.payload.state),
+    await listen<{ ip: string; ms: number }>(
+      'latency',
+      forIp((p) => s().setLatency(p.ip, p.ms)),
     );
-    await listen<{ ip: string; ms: number }>('latency', (e) =>
-      s().setLatency(e.payload.ip, e.payload.ms),
-    );
-    await listen<{ ip: string; values: Record<string, string> }>('status_update', (e) =>
-      s().statusUpdate(e.payload.ip, e.payload.values),
+    await listen<{ ip: string; values: Record<string, string> }>(
+      'status_update',
+      forIp((p) => s().statusUpdate(p.ip, p.values)),
     );
     await listen<{ ip: string; dir: 'tx' | 'rx' | 'sys'; text: string; ts: number }>(
       'log_line',
-      (e) => s().logLine(e.payload.ip, { dir: e.payload.dir, text: e.payload.text, ts: e.payload.ts }),
+      forIp((p) => s().logLine(p.ip, { dir: p.dir, text: p.text, ts: p.ts })),
     );
   } catch (err) {
     // Sin esto, un fallo de permisos deja la app muda (ver capabilities/default.json).

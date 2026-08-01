@@ -5,14 +5,26 @@ import Header from './components/Header';
 import HelpDialog from './components/HelpDialog';
 import MainView from './components/MainView';
 import StatusBar from './components/StatusBar';
-import { refreshAdapters, runDiscovery, seedDemoIfNeeded } from './lib/actions';
+import {
+  refreshAdapters,
+  runDiscovery,
+  seedDemoIfNeeded,
+  seedDeviceWindowDemo,
+} from './lib/actions';
 import { wireEvents } from './lib/ipc';
-import { useAppStore } from './store/appStore';
+
+// Enrutado por ventana (estilo Advatek): la ventana principal lista los
+// controladores; cada ventana `?device=<ip>` es la configuración de ese
+// controlador, con su propio contexto JS y suscripción de eventos filtrada.
+const deviceIp = new URLSearchParams(window.location.search).get('device');
 
 export default function App() {
-  const view = useAppStore((s) => s.view);
-
   useEffect(() => {
+    if (deviceIp) {
+      void wireEvents(deviceIp);
+      seedDeviceWindowDemo(deviceIp);
+      return;
+    }
     void wireEvents();
     void refreshAdapters();
     seedDemoIfNeeded();
@@ -20,11 +32,19 @@ export default function App() {
     window.setTimeout(() => void runDiscovery(), 1500);
   }, []);
 
+  if (deviceIp) {
+    return (
+      <div className="flex h-full flex-col">
+        <DeviceView ip={deviceIp} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       <Header />
       <div className="flex min-h-0 flex-1 flex-col">
-        {view.kind === 'main' ? <MainView /> : <DeviceView ip={view.ip} />}
+        <MainView />
       </div>
       <StatusBar />
       <AboutDialog />

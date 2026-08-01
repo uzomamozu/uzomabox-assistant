@@ -34,18 +34,21 @@ export default function StatusTab({ ip }: { ip: string }) {
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* Cuadrícula de estado */}
       <section className="panel shrink-0 p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold">{t.estado.title}</h2>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              if (isTauri) void ipc.sendCommand(ip, 'IDENTIFY').catch(() => undefined);
-            }}
-          >
-            <LocateFixed size={16} />
-            {t.estado.identify}
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="max-w-64 text-right text-xs text-muted">{t.estado.identifyHint}</span>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                if (isTauri) void ipc.sendCommand(ip, 'IDENTIFY').catch(() => undefined);
+              }}
+            >
+              <LocateFixed size={16} />
+              {t.estado.identify}
+            </button>
+          </div>
         </div>
         {entries.length === 0 ? (
           <p className="text-sm text-muted">{t.estado.noData}</p>

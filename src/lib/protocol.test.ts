@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCsvPreserving,
   buildOutputRows,
   clampTestOutput,
   computeOutputRow,
@@ -130,6 +131,23 @@ describe('matemática de universos', () => {
     expect(rows[8].active).toBe(false);
     expect(rows[1].startUniverse).toBe(6);
     expect(rows[1].endUniverse).toBe(11);
+  });
+});
+
+describe('buildCsvPreserving', () => {
+  it('combina filas visibles editadas con valores previos de STATUS', () => {
+    const last = Array.from({ length: 16 }, (_, i) => i * 6);
+    expect(buildCsvPreserving([0, 2, 4], last)).toEqual([0, 2, 4, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90]);
+  });
+  it('rellena con 0 las filas ocultas si no hay STATUS conocido', () => {
+    expect(buildCsvPreserving([1, 1], null, 4)).toEqual([1, 1, 0, 0]);
+  });
+  it('con 16 filas visibles ignora lastKnown', () => {
+    const full = Array.from({ length: 16 }, () => 7);
+    expect(buildCsvPreserving(full, [1, 2, 3])).toEqual(full);
+  });
+  it('devuelve 16 entradas por defecto', () => {
+    expect(buildCsvPreserving([9], null)).toHaveLength(16);
   });
 });
 

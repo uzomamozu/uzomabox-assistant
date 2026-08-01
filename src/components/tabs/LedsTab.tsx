@@ -4,6 +4,7 @@ import { t } from '../../i18n/es';
 import { useRebootWatch } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';
 import {
+  buildCsvPreserving,
   COLOR_ORDERS,
   computeOutputRow,
   isValidLedWidth,
@@ -100,12 +101,21 @@ export default function LedsTab({ ip }: { ip: string }) {
   };
 
   const startValues = rows.map((r) => Number(r.start));
-  const rowsValid = startValues.every((v) => isValidStartUniverse(v));
+  // La tabla muestra exactamente output_count filas (fallback 8); los CSV de
+  // CONFIG siempre llevan las 16 entradas, conservando las filas ocultas.
+  const parsedCount = Number(status?.output_count ?? 8) || 8;
+  const outputCount = Math.min(Math.max(parsedCount, 1), OUTPUT_ROWS);
+  const visibleRows = rows.slice(0, outputCount);
+  const rowsValid = startValues.slice(0, outputCount).every((v) => isValidStartUniverse(v));
 
   const applyOutputMap = () => {
     if (!rowsValid) return;
-    send(`CONFIG:output_active=${toCsv(rows.map((r) => (r.active ? 1 : 0)))}`);
-    send(`CONFIG:start_universe=${toCsv(startValues)}`);
+    const knownActive = activeCsv ? parseCsv(activeCsv, OUTPUT_ROWS) : null;
+    const knownStarts = startCsv ? parseCsv(startCsv, OUTPUT_ROWS) : null;
+    const activeValues = buildCsvPreserving(visibleRows.map((r) => (r.active ? 1 : 0)), knownActive);
+    const universeValues = buildCsvPreserving(startValues.slice(0, outputCount), knownStarts);
+    send(`CONFIG:output_active=${toCsv(activeValues)}`);
+    send(`CONFIG:start_universe=${toCsv(universeValues)}`);
     setDirtyRows(new Set());
     setUniversePending(true);
   };
@@ -200,7 +210,7 @@ export default function LedsTab({ ip }: { ip: string }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => {
+              {visibleRows.map((row, i) => {
                 const startValid = isValidStartUniverse(Number(row.start));
                 const calc = computeOutputRow(i, row.active, startValid ? Number(row.start) : 0, effectiveWidth);
                 return (

@@ -10,10 +10,11 @@ mod protocol;
 
 use connection::ConnectionManager;
 use serde::Serialize;
-use tauri::{AppHandle, Manager, State};
+use std::sync::Arc;
+use tauri::{AppHandle, Manager, State, WindowEvent};
 
 struct AppState {
-    connections: ConnectionManager,
+    connections: Arc<ConnectionManager>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -88,10 +89,52 @@ async fn identify(app: AppHandle, ip: String) -> Result<(), String> {
     connection::identify_once(&app, &ip).await
 }
 
+/// Shared implementation for the `open_device_window` command.
+fn open_device_window_impl(
+    app: &AppHandle,
+    connections: Arc<ConnectionManager>,
+    ip: String,
+    title: String,
+) -> Result<(), String> {
+    // Los labels de ventana no admiten '.': device-192_168_1_129.
+    let label = format!("device-{}", ip.replace('.', "_"));
+    if let Some(window) = app.get_webview_window(&label) {
+        window.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    let url = tauri::WebviewUrl::App(format!("index.html?device={ip}").into());
+    let window = tauri::WebviewWindowBuilder::new(app, &label, url)
+        .title(&title)
+        .inner_size(940.0, 760.0)
+        .min_inner_size(800.0, 560.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Robust socket cleanup: React unmount is not guaranteed on window close.
+    window.on_window_event(move |event| {
+        if let WindowEvent::Destroyed = event {
+            connections.disconnect(&ip);
+        }
+    });
+    Ok(())
+}
+
+/// Open (or focus) the per-device configuration window. Each device gets its
+/// own OS window labelled `device-<ip>`; closing it disconnects the device.
+#[tauri::command]
+fn open_device_window(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ip: String,
+    title: String,
+) -> Result<(), String> {
+    open_device_window_impl(&app, state.connections.clone(), ip, title)
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .manage(AppState {
-            connections: ConnectionManager::new(),
+            connections: Arc::new(ConnectionManager::new()),
         })
         .invoke_handler(tauri::generate_handler![
             list_adapters,
@@ -100,7 +143,8 @@ fn main() {
             connect,
             disconnect,
             send_command,
-            identify
+            identify,
+            open_device_window
         ])
         .build(tauri::generate_context!())
         .expect("error while building UzomaBox Assistant");

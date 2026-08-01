@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permisos de la ventana principal: APIs core + bus de eventos (listen/emit) usado por discovery, conexiones y log.",
-  "windows": ["main"],
-  "permissions": ["core:default", "core:event:default"]
+  "description": "Permisos de las ventanas de la app: APIs core + bus de eventos (listen/emit) usado por discovery, conexiones y log. Las ventanas de dispositivo (device-*) además pueden cerrarse a sí mismas.",
+  "windows": ["main", "device-*"],
+  "permissions": ["core:default", "core:event:default", "core:window:allow-close"]
 }

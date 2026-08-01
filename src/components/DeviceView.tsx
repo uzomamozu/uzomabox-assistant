@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { X } from 'lucide-react';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { t } from '../i18n/es';
 import { ipc, isTauri } from '../lib/ipc';
 import { useAppStore, type ConnState, type TabId } from '../store/appStore';
 import PlaceholderTab from './tabs/PlaceholderTab';
 import ArtNetTab from './tabs/ArtNetTab';
+import GeneralTab from './tabs/GeneralTab';
 import LedsTab from './tabs/LedsTab';
-import RedTab from './tabs/RedTab';
 import StatusTab from './tabs/StatusTab';
 import TestTab from './tabs/TestTab';
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'red', label: t.device.tabs.red },
+  { id: 'general', label: t.device.tabs.general },
   { id: 'leds', label: t.device.tabs.leds },
   { id: 'artnet', label: t.device.tabs.artnet },
   { id: 'playback', label: t.device.tabs.playback },
@@ -27,21 +28,28 @@ const CONN_STYLE: Record<ConnState, { dot: string; text: string; label: string }
   lost: { dot: 'bg-danger animate-pulse', text: 'text-danger', label: t.device.conn.lost },
 };
 
+/** Vista de configuración de un dispositivo: vive en su propia ventana OS
+ *  (estilo Advatek); el botón de cerrar cierra la ventana. */
 export default function DeviceView({ ip }: { ip: string }) {
   const device = useAppStore((s) => s.devices[ip]);
   const conn = useAppStore((s) => s.connState[ip] ?? 'disconnected');
   const latency = useAppStore((s) => s.latency[ip]);
   const activeTab = useAppStore((s) => s.activeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
-  const closeDevice = useAppStore((s) => s.closeDevice);
 
   // Ciclo de vida de la conexión: conectar al entrar, cerrar limpio al salir.
+  // (El cierre de la ventana OS además desconecta desde Rust: es el camino
+  // robusto cuando el webview se destruye sin desmontar React.)
   useEffect(() => {
     if (isTauri) void ipc.connect(ip);
     return () => {
       if (isTauri) void ipc.disconnect(ip);
     };
   }, [ip]);
+
+  const closeWindow = () => {
+    if (isTauri) void getCurrentWebviewWindow().close();
+  };
 
   const style = CONN_STYLE[conn];
   const title = device?.nick?.trim() || device?.model?.trim() || ip;
@@ -50,9 +58,9 @@ export default function DeviceView({ ip }: { ip: string }) {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Cabecera del dispositivo */}
       <div className="flex items-center gap-4 border-b border-border bg-panel px-4 py-2.5">
-        <button type="button" className="btn" onClick={closeDevice}>
-          <ArrowLeft size={16} />
-          {t.device.back}
+        <button type="button" className="btn" onClick={closeWindow}>
+          <X size={16} />
+          {t.device.close}
         </button>
         <div className="min-w-0">
           <h1 className="truncate text-base font-semibold leading-tight">{title}</h1>
@@ -91,8 +99,8 @@ export default function DeviceView({ ip }: { ip: string }) {
 
       {/* Contenido de la pestaña */}
       <div className="min-h-0 flex-1 overflow-auto p-4">
-        {activeTab === 'red' ? (
-          <RedTab ip={ip} />
+        {activeTab === 'general' ? (
+          <GeneralTab ip={ip} />
         ) : activeTab === 'leds' ? (
           <LedsTab ip={ip} />
         ) : activeTab === 'artnet' ? (
