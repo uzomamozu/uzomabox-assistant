@@ -213,8 +213,11 @@ async fn run_session(
     let mut status_buf: BTreeMap<String, String> = BTreeMap::new();
     let mut status_flush: Option<std::pin::Pin<Box<tokio::time::Sleep>>> = None;
 
-    // In-flight LIST request/response (v1's only multi-line one).
-    let mut list: Option<(ListCollector, oneshot::Sender<Result<Vec<String>, String>>)> = None;
+    // In-flight LIST request/response (v1's only multi-line one). Concurrent
+    // callers coalesce: they all share the same reply (StrictMode dispara
+    // efectos dos veces en dev; sin esto el segundo LIST era rechazado).
+    let mut list: Option<(ListCollector, Vec<oneshot::Sender<Result<Vec<String>, String>>>)> =
+        None;
     let mut list_deadline: Option<std::pin::Pin<Box<tokio::time::Sleep>>> = None;
 
     // Helper results encoded in-loop to keep borrows simple.
@@ -231,8 +234,10 @@ async fn run_session(
                         // mirrored to the log above like any other traffic.
                         if let Some((collector, _)) = list.as_mut() {
                             if let Some(result) = collector.feed(&line) {
-                                let (_, tx) = list.take().unwrap();
-                                let _ = tx.send(result);
+                                let (_, txs) = list.take().unwrap();
+                                for tx in txs {
+                                    let _ = tx.send(result.clone());
+                                }
                                 list_deadline = None;
                             }
                         }
@@ -280,8 +285,10 @@ async fn run_session(
                 }
             } => {
                 // END:LIST lost: resolve with Err instead of hanging.
-                if let Some((_, tx)) = list.take() {
-                    let _ = tx.send(Err("LIST sin END:LIST (tiempo agotado)".to_string()));
+                if let Some((_, txs)) = list.take() {
+                    for tx in txs {
+                        let _ = tx.send(Err("LIST sin END:LIST (tiempo agotado)".to_string()));
+                    }
                 }
                 list_deadline = None;
             }
@@ -309,15 +316,16 @@ async fn run_session(
                         }
                     }
                     Some(WorkerCmd::ListFiles(tx)) => {
-                        if list.is_some() {
-                            let _ = tx.send(Err("ya hay un LIST en curso".to_string()));
+                        if let Some((_, txs)) = list.as_mut() {
+                            // Coalesce: comparten la respuesta del LIST en curso.
+                            txs.push(tx);
                         } else {
                             let line = protocol::encode_command(&protocol::Command::List);
                             if write_line(&mut write_half, app, ip, &line).await.is_err() {
                                 let _ = tx.send(Err("conexión perdida".to_string()));
                                 break SessionEnd::Lost;
                             }
-                            list = Some((ListCollector::new(), tx));
+                            list = Some((ListCollector::new(), vec![tx]));
                             list_deadline = Some(Box::pin(tokio::time::sleep(LIST_TIMEOUT)));
                         }
                     }
@@ -328,8 +336,10 @@ async fn run_session(
     };
 
     // Resolve any pending LIST so callers never hang on a dead session.
-    if let Some((_, tx)) = list.take() {
-        let _ = tx.send(Err("conexión terminada durante LIST".to_string()));
+    if let Some((_, txs)) = list.take() {
+        for tx in txs {
+            let _ = tx.send(Err("conexión terminada durante LIST".to_string()));
+        }
     }
     end
 }

@@ -142,10 +142,18 @@ const DEMO_STATUS: Record<string, string> = {
 /** Lista de archivos de demostración (navegador); mutable para Eliminar. */
 const demoFiles = ['REC_001.BIN', 'REC_002.BIN', 'SHOW_DEMO.BIN'];
 
-/** Pide la lista de archivos del dispositivo (LIST request/response). */
+/** Pide la lista de archivos del dispositivo (LIST request/response).
+ *  Peticiones concurrentes a la misma IP comparten una sola llamada
+ *  (StrictMode dispara efectos dos veces en dev). */
+const listInFlight = new Map<string, Promise<string[]>>();
+
 export async function fetchFileList(ip: string): Promise<string[]> {
   if (!isTauri) return [...demoFiles];
-  return ipc.listFiles(ip);
+  const existing = listInFlight.get(ip);
+  if (existing) return existing;
+  const promise = ipc.listFiles(ip).finally(() => listInFlight.delete(ip));
+  listInFlight.set(ip, promise);
+  return promise;
 }
 
 /** Reproduce un archivo (PLAY:<file>). */

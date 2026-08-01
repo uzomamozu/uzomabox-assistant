@@ -121,7 +121,7 @@ export const t = {
     startModes: ['Inmediato', 'Primer frame no-cero', 'Cambio de canal'],
     universe: 'Universo',
     channel: 'Canal',
-    stopTrigger: 'Trigger de fin',
+    stopTrigger: 'Trigger de stop',
     stopModes: ['Manual', 'Todo en cero', 'Temporizador'],
     seconds: 'Segundos',
     volatileHint: 'Los parámetros de trigger son volátiles en v1 (no se guardan en el dispositivo).',
