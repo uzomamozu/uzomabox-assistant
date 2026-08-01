@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { t } from '../i18n/es';
@@ -54,6 +54,18 @@ export default function DeviceView({ ip }: { ip: string }) {
   const style = CONN_STYLE[conn];
   const title = device?.nick?.trim() || device?.model?.trim() || ip;
 
+  // Si la conexión no cuaja en 15 s, probablemente el firmware v1 tiene un
+  // cliente zombie ocupando su único slot TCP (solo se libera reiniciando).
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (conn === 'connected' || conn === 'disconnected') {
+      setStalled(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setStalled(true), 15000);
+    return () => window.clearTimeout(timer);
+  }, [conn]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Cabecera del dispositivo */}
@@ -77,9 +89,15 @@ export default function DeviceView({ ip }: { ip: string }) {
         </div>
       </div>
 
+      {/* Aviso de posible cliente zombie (v1: un solo cliente TCP) */}
+      {stalled && (
+        <div className="border-b border-border bg-panel px-4 py-2 text-xs text-warn">
+          {t.device.stalledHint}
+        </div>
+      )}
+
       {/* Tira de pestañas */}
-      <div className="flex gap-1 border-b border-border bg-panel px-4 pt-2" role="tablist">
-        {TABS.map((tab) => (
+      <div className="flex gap-1 border-b border-border bg-panel px-4 pt-2" role="tablist">        {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"

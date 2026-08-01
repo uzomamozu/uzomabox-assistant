@@ -64,6 +64,8 @@ export const t = {
       lost: 'Conexión perdida',
     },
     latency: (ms: number) => `${ms} ms`,
+    stalledHint:
+      'Sin respuesta del dispositivo. Si ya tenía una sesión abierta de antes (el firmware v1 solo admite un cliente), reinícialo para liberarla.',
   },
 
   estado: {
