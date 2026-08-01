@@ -124,15 +124,19 @@ npm run tauri build -- --target universal-apple-darwin
 # sin --target: build solo para la arquitectura actual (más rápido)
 ```
 
-El DMG queda en `src-tauri/target/release/bundle/dmg/`. Los iconos se generan desde el logo vertical: `npm run tauri icon <png-cuadrado>`.
+El DMG queda en `src-tauri/target/universal-apple-darwin/release/bundle/dmg/` (build universal) o `src-tauri/target/release/bundle/dmg/` (build nativo). Los iconos se generan desde el logo vertical: `npm run tauri icon <png-cuadrado>`. El bundle se firma ad-hoc (`bundle.macOS.signingIdentity: "-"` en `tauri.conf.json`) para que el firewall pueda registrarla por identificador.
 
 ### CI (GitHub Actions)
 
 `.github/workflows/release.yml` construye los instaladores al publicar un tag `v*`: **macOS** (dmg universal) y **Windows** (msi/nsis), y los sube al GitHub Release del tag (`softprops/action-gh-release`). Para publicar: `git tag v1.1.0 && git push origin v1.1.0`.
 
-### Avisos de primera ejecución (instaladores sin firma)
+### Avisos de primera ejecución (instaladores sin firma de desarrollador)
 
-Los instaladores salen **sin firma** (ad-hoc) hasta que se añadan los certificados (Apple Developer ID / EV) como secrets:
+Los instaladores salen con **firma ad-hoc** hasta que se añadan los certificados (Apple Developer ID / EV) como secrets:
 
-- **macOS**: Gatekeeper avisará ("app de desarrollador no identificado") — abrir con clic derecho → Abrir. El firewall (ALF) además pedirá permitir conexiones entrantes en el primer arranque; es necesario para el discovery UDP.
-- **Windows**: SmartScreen avisará ("Windows protegió su PC") → Más información → Ejecutar de todas formas.
+- **macOS**: Gatekeeper avisará ("app de desarrollador no identificado") — abrir con clic derecho → Abrir. **Ojo con el firewall (ALF): NO muestra diálogo para apps ad-hoc y bloquea el discovery UDP en silencio** (la tabla sale vacía). Si aparece el diálogo de "permitir conexiones entrantes", acéptalo; si no, otorga el permiso a mano una sola vez:
+  ```bash
+  sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add "/Applications/UzomaBox Assistant.app"
+  sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp "/Applications/UzomaBox Assistant.app"
+  ```
+- **Windows**: SmartScreen avisará ("Windows protegió su PC") → Más información → Ejecutar de todas formas. El firewall de Windows sí mostrará su diálogo habitual de red — aceptar.
