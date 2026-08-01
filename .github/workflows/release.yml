@@ -55,8 +55,10 @@ jobs:
       - name: Upload installers to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # '**' cubre release/ y universal-apple-darwin/release/ (el dmg
+          # universal NO cae en target/release/bundle, cae en el subárbol
+          # del target triple; *.app.tar.gz solo existe con updater activo).
           files: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app.tar.gz
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/**/bundle/dmg/*.dmg
+            src-tauri/target/**/bundle/msi/*.msi
+            src-tauri/target/**/bundle/nsis/*.exe
