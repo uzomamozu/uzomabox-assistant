@@ -14,8 +14,6 @@ export const ipc = {
   sendCommand: (ip: string, command: string) => invoke<void>('send_command', { ip, command }),
   identify: (ip: string) => invoke<void>('identify', { ip }),
   listFiles: (ip: string) => invoke<string[]>('list_files', { ip }),
-  openDeviceWindow: (ip: string, title: string) =>
-    invoke<void>('open_device_window', { ip, title }),
 };
 
 let wired = false;

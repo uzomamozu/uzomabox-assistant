@@ -39,6 +39,10 @@ export const t = {
     remove: 'Quitar de la lista',
   },
 
+  tabs: {
+    devices: 'Controladores',
+  },
+
   statusbar: {
     ready: 'Listo',
     devices: (n: number) => (n === 1 ? '1 controlador' : `${n} controladores`),
@@ -201,6 +205,7 @@ export const t = {
   test: {
     pattern: 'Patrón de test',
     patterns: ['Ciclo RGBW', 'Fade arcoíris', 'Rojo', 'Verde', 'Azul'],
+    patternsV2: ['Chase diagnóstico (1 píxel)', 'Blanco 10 % (carga)'],
     output: 'Salida',
     outputAll: 'Todas',
     outputN: (n: number) => `Salida ${n}`,

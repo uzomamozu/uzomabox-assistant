@@ -71,6 +71,15 @@ interface AppState {
   activeTab: TabId;
   setActiveTab: (tab: TabId) => void;
 
+  // Pestañas de dispositivo dentro de la ventana principal (M2.1 reemplaza
+  // las ventanas OS por pestañas: crear un segundo WebView2 en Windows es
+  // frágil). `activeView` es 'devices' (la tabla) o la IP de una pestaña.
+  openDevices: string[];
+  activeView: string;
+  openDevice: (ip: string) => void;
+  closeDevice: (ip: string) => void;
+  setActiveView: (view: string) => void;
+
   aboutOpen: boolean;
   setAboutOpen: (open: boolean) => void;
   helpOpen: boolean;
@@ -136,6 +145,26 @@ export const useAppStore = create<AppState>((set) => ({
 
   activeTab: 'estado',
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  openDevices: [],
+  activeView: 'devices',
+  openDevice: (ip) =>
+    set((s) => ({
+      openDevices: s.openDevices.includes(ip) ? s.openDevices : [...s.openDevices, ip],
+      activeView: ip,
+    })),
+  closeDevice: (ip) =>
+    set((s) => {
+      const idx = s.openDevices.indexOf(ip);
+      const openDevices = s.openDevices.filter((x) => x !== ip);
+      let activeView = s.activeView;
+      if (activeView === ip) {
+        // Activa la pestaña vecina (o la tabla si no queda ninguna).
+        activeView = openDevices[Math.min(idx, openDevices.length - 1)] ?? 'devices';
+      }
+      return { openDevices, activeView };
+    }),
+  setActiveView: (view) => set({ activeView: view }),
 
   aboutOpen: false,
   setAboutOpen: (open) => set({ aboutOpen: open }),

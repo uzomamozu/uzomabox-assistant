@@ -82,7 +82,7 @@ export async function identifyDevice(ip: string): Promise<void> {
   }
 }
 
-/** Quita un dispositivo de la lista (cerrando su conexión si existe). */
+/** Quita un dispositivo de la lista (cerrando su pestaña y conexión si existen). */
 export async function removeDevice(ip: string): Promise<void> {
   const s = useAppStore.getState();
   if (isTauri) {
@@ -92,27 +92,16 @@ export async function removeDevice(ip: string): Promise<void> {
       // si no había conexión no hay nada que cerrar
     }
   }
+  s.closeDevice(ip);
   s.removeDevice(ip);
 }
 
 /**
- * Abre la ventana de configuración del dispositivo (una ventana OS por
- * controlador; si ya existe, el backend la enfoca).
+ * Abre la pestaña de configuración del dispositivo dentro de la ventana
+ * principal (si ya está abierta, simplemente la enfoca).
  */
-export async function openDeviceWindow(ip: string): Promise<void> {
-  const s = useAppStore.getState();
-  const device = s.devices[ip];
-  const name = device?.nick?.trim() || device?.model?.trim() || ip;
-  if (!isTauri) {
-    // Vista previa en navegador: la "ventana" es otra pestaña del navegador.
-    window.open(`?device=${encodeURIComponent(ip)}`, '_blank');
-    return;
-  }
-  try {
-    await ipc.openDeviceWindow(ip, `UzomaBox — ${name}`);
-  } catch (err) {
-    s.setDiscovery(false, String(err));
-  }
+export function openDeviceTab(ip: string): void {
+  useAppStore.getState().openDevice(ip);
 }
 
 /** Valores STATUS de demostración para la vista previa en navegador. */

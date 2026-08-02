@@ -38,6 +38,10 @@ export const en: Strings = {
     remove: 'Remove from list',
   },
 
+  tabs: {
+    devices: 'Controllers',
+  },
+
   statusbar: {
     ready: 'Ready',
     devices: (n: number) => (n === 1 ? '1 controller' : `${n} controllers`),
@@ -198,6 +202,7 @@ export const en: Strings = {
   test: {
     pattern: 'Test pattern',
     patterns: ['RGBW cycle', 'Rainbow fade', 'Red', 'Green', 'Blue'],
+    patternsV2: ['Diagnostic chase (1 pixel)', 'White 10% (load)'],
     output: 'Output',
     outputAll: 'All',
     outputN: (n: number) => `Output ${n}`,

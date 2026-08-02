@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, LocateFixed, Settings2, Trash2 } from 'lucide-react';
 import { t } from '../i18n';
-import { identifyDevice, openDeviceWindow, removeDevice } from '../lib/actions';
+import { identifyDevice, openDeviceTab, removeDevice } from '../lib/actions';
 import { useAppStore, type Device } from '../store/appStore';
 import ContextMenu from './ContextMenu';
 
@@ -88,7 +88,7 @@ export default function DeviceTable() {
             <tr
               key={d.ip}
               className="cursor-pointer border-b border-border transition-colors duration-150 last:border-0 hover:bg-bg"
-              onDoubleClick={() => void openDeviceWindow(d.ip)}
+              onDoubleClick={() => openDeviceTab(d.ip)}
               onContextMenu={(e) => openMenu(e, d.ip)}
             >
               <td className="px-4 py-2.5">{cell(d.model)}</td>
@@ -109,7 +109,7 @@ export default function DeviceTable() {
             {
               label: t.menu.open,
               icon: Settings2,
-              onClick: () => void openDeviceWindow(menu.ip),
+              onClick: () => openDeviceTab(menu.ip),
             },
             {
               label: t.menu.identify,
