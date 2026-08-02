@@ -16,6 +16,8 @@ export default function TestTab({ ip }: { ip: string }) {
   // (el firmware v1 se desborda con índices >= output_count).
   const outputCount = Math.max(1, Number(status?.output_count ?? 8) || 8);
   const running = status?.mode === 'test';
+  // proto=2 llega en el STATUS de firmware v2 (ausente = v1).
+  const isV2 = Number(status?.proto ?? 1) >= 2;
 
   const send = (cmd: string) => {
     if (isTauri) void ipc.sendCommand(ip, cmd).catch(() => undefined);
@@ -54,6 +56,23 @@ export default function TestTab({ ip }: { ip: string }) {
                 {label}
               </label>
             ))}
+            {/* Patrones diagnósticos v2 (índices 5+): solo si el firmware es proto>=2 */}
+            {isV2 &&
+              t.test.patternsV2.map((label, k) => {
+                const n = k + t.test.patterns.length;
+                return (
+                  <label key={label} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="test-pattern"
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                      checked={pattern === n}
+                      onChange={() => selectPattern(n)}
+                    />
+                    {label}
+                  </label>
+                );
+              })}
           </div>
         </Section>
 

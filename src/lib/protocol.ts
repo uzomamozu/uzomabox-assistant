@@ -16,6 +16,8 @@ export type ColorOrder = (typeof COLOR_ORDERS)[number];
 
 export const TEST_PATTERN_MIN = 0;
 export const TEST_PATTERN_MAX = 4;
+/** Máximo con firmware proto>=2: añade chase diagnóstico (5) y blanco 10 % (6). */
+export const TEST_PATTERN_MAX_V2 = 6;
 /** Índice de salida que significa "todas" en COMMAND:TEST_OUTPUT. */
 export const TEST_OUTPUT_ALL = 255;
 
