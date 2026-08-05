@@ -109,6 +109,12 @@ export const en: Strings = {
     selectHint: 'Select at least one file to enable playback.',
     playSelected: (n: number) => `Play selected (${n})`,
     playSelectedHint: (n: number) => `Play the ${n} selected file${n !== 1 ? 's' : ''}.`,
+    save: 'Save playlist',
+    saveHint: 'Persist current selection to the device SD card.',
+    saving: 'Saving…',
+    load: 'Load playlist',
+    loadHint: 'Restore the playlist stored on the device SD card.',
+    loading: 'Loading…',
   },
 
   grabacion: {

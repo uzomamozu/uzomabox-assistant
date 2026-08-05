@@ -33,6 +33,8 @@ pub enum WorkerCmd {
     SendLine(String),
     /// Request/response for the multi-line LIST reply (v1's only one).
     ListFiles(oneshot::Sender<Result<Vec<String>, String>>),
+    /// Request/response for PLAYLIST? (M6.1).
+    PlaylistFiles(oneshot::Sender<Result<Vec<String>, String>>),
     Shutdown,
 }
 
@@ -96,6 +98,22 @@ impl ConnectionManager {
             match workers.get(ip) {
                 Some(worker) => worker
                     .try_send(WorkerCmd::ListFiles(tx))
+                    .map_err(|e| format!("no se pudo encolar: {e}"))?,
+                None => return Err("dispositivo no conectado".to_string()),
+            }
+        }
+        rx.await
+            .map_err(|_| "el worker cerró sin responder".to_string())?
+    }
+
+    /// Ask a connected device for its stored playlist (PLAYLIST? M6.1).
+    pub async fn fetch_playlist(&self, ip: &str) -> Result<Vec<String>, String> {
+        let (tx, rx) = oneshot::channel();
+        {
+            let workers = self.workers.lock().unwrap();
+            match workers.get(ip) {
+                Some(worker) => worker
+                    .try_send(WorkerCmd::PlaylistFiles(tx))
                     .map_err(|e| format!("no se pudo encolar: {e}"))?,
                 None => return Err("dispositivo no conectado".to_string()),
             }
@@ -170,6 +188,9 @@ async fn run_worker(app: AppHandle, ip: String, port: u16, mut rx: mpsc::Receive
                         events::emit_log(&app, &ip, "sys", "Comando ignorado: sin conexión");
                     }
                     Some(WorkerCmd::ListFiles(tx)) => {
+                        let _ = tx.send(Err("sin conexión".to_string()));
+                    }
+                    Some(WorkerCmd::PlaylistFiles(tx)) => {
                         let _ = tx.send(Err("sin conexión".to_string()));
                     }
                 },
@@ -326,6 +347,20 @@ async fn run_session(
                                 break SessionEnd::Lost;
                             }
                             list = Some((ListCollector::new(), vec![tx]));
+                            list_deadline = Some(Box::pin(tokio::time::sleep(LIST_TIMEOUT)));
+                        }
+                    }
+                    Some(WorkerCmd::PlaylistFiles(tx)) => {
+                        // Don't coalesce with LIST (different markers); reject if busy.
+                        if list.is_some() {
+                            let _ = tx.send(Err("LIST o PLAYLIST en curso".to_string()));
+                        } else {
+                            let line = "PLAYLIST?".to_string();
+                            if write_line(&mut write_half, app, ip, &line).await.is_err() {
+                                let _ = tx.send(Err("conexión perdida".to_string()));
+                                break SessionEnd::Lost;
+                            }
+                            list = Some((ListCollector::for_playlist(), vec![tx]));
                             list_deadline = Some(Box::pin(tokio::time::sleep(LIST_TIMEOUT)));
                         }
                     }

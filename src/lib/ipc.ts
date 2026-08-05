@@ -14,6 +14,7 @@ export const ipc = {
   sendCommand: (ip: string, command: string) => invoke<void>('send_command', { ip, command }),
   identify: (ip: string) => invoke<void>('identify', { ip }),
   listFiles: (ip: string) => invoke<string[]>('list_files', { ip }),
+  fetchPlaylist: (ip: string) => invoke<string[]>('fetch_playlist', { ip }),
 };
 
 let wired = false;

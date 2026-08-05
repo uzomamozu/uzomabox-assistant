@@ -110,6 +110,12 @@ export const t = {
     selectHint: 'Seleccione al menos un archivo para habilitar la reproducción.',
     playSelected: (n: number) => `Reproducir seleccionados (${n})`,
     playSelectedHint: (n: number) => `Reproduce los ${n} archivo${n !== 1 ? 's' : ''} seleccionados.`,
+    save: 'Guardar playlist',
+    saveHint: 'Guarda la selección actual en la SD del dispositivo.',
+    saving: 'Guardando…',
+    load: 'Cargar playlist',
+    loadHint: 'Restaura la playlist almacenada en la SD del dispositivo.',
+    loading: 'Cargando…',
   },
 
   grabacion: {

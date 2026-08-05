@@ -138,17 +138,33 @@ pub fn parse_discovery_reply(line: &str) -> Option<BTreeMap<String, String>> {
     }
 }
 
-/// State machine for the multi-line LIST reply: `OK:LIST`, one filename per
-/// line, `END:LIST`. Feed every received line while a LIST is in flight.
+/// State machine for multi-line framed replies: `OK:<kind>`, one item per
+/// line, `END:<kind>`. Used for both LIST (file names) and PLAYLIST.
 #[derive(Debug, Default)]
 pub struct ListCollector {
     files: Vec<String>,
     active: bool,
+    ok_marker: String,
+    end_marker: String,
 }
 
 impl ListCollector {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            ok_marker: "OK:LIST".to_string(),
+            end_marker: "END:LIST".to_string(),
+            ..Default::default()
+        }
+    }
+
+    /// Build a collector for the PLAYLIST framed reply (`OK:PLAYLIST` /
+    /// `END:PLAYLIST`).
+    pub fn for_playlist() -> Self {
+        Self {
+            ok_marker: "OK:PLAYLIST".to_string(),
+            end_marker: "END:PLAYLIST".to_string(),
+            ..Default::default()
+        }
     }
 
     /// True mientras hay una recolección en curso (usado por los tests).
@@ -157,31 +173,24 @@ impl ListCollector {
         self.active
     }
 
-    /// Feed one received line.
-    ///
-    /// - Inactive: only `OK:LIST` matters (starts collection); anything else
-    ///   returns `None` (the line belongs to normal traffic).
-    /// - Active: filenames accumulate; `END:LIST` completes with
-    ///   `Some(Ok(files))`; protocol-looking lines (`OK:*`, `ERR:*`, `PONG`,
-    ///   `key=value`) abort with `Some(Err(..))` because a valid LIST reply
-    ///   can never contain them.
+    /// Feed one received line. Recognises the markers set at construction.
     pub fn feed(&mut self, line: &str) -> Option<Result<Vec<String>, String>> {
         let line = line.trim_end();
         if !self.active {
-            if line == "OK:LIST" {
+            if line == self.ok_marker {
                 self.active = true;
                 self.files.clear();
             }
             return None;
         }
-        if line == "END:LIST" {
+        if line == self.end_marker {
             self.active = false;
             return Some(Ok(std::mem::take(&mut self.files)));
         }
-        if line == "OK:LIST" {
+        if line == self.ok_marker {
             self.active = false;
             self.files.clear();
-            return Some(Err("LIST interrumpido por un nuevo OK:LIST".to_string()));
+            return Some(Err(format!("{} interrumpido por un nuevo {}", self.end_marker, self.ok_marker)));
         }
         if let Some(detail) = line.strip_prefix("ERR:") {
             self.active = false;
@@ -191,7 +200,7 @@ impl ListCollector {
         if line.starts_with("OK:") || line == "PONG" || parse_status_line(line).is_some() {
             self.active = false;
             self.files.clear();
-            return Some(Err(format!("línea inesperada dentro de LIST: {line}")));
+            return Some(Err(format!("línea inesperada dentro de {}: {line}", self.ok_marker)));
         }
         if !line.is_empty() {
             self.files.push(line.to_string());

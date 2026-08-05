@@ -95,6 +95,12 @@ async fn list_files(state: State<'_, AppState>, ip: String) -> Result<Vec<String
     state.connections.list_files(&ip).await
 }
 
+/// Ask a connected device for its stored playlist (PLAYLIST? M6.1).
+#[tauri::command]
+async fn fetch_playlist(state: State<'_, AppState>, ip: String) -> Result<Vec<String>, String> {
+    state.connections.fetch_playlist(&ip).await
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .manage(AppState {
@@ -108,7 +114,8 @@ fn main() {
             disconnect,
             send_command,
             identify,
-            list_files
+            list_files,
+            fetch_playlist
         ])
         .build(tauri::generate_context!())
         .expect("error while building UzomaBox Assistant");

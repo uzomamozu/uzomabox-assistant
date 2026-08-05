@@ -145,6 +145,12 @@ export async function fetchFileList(ip: string): Promise<string[]> {
   return promise;
 }
 
+/** Carga la playlist almacenada en el dispositivo (PLAYLIST? M6.1). */
+export async function fetchPlaylist(ip: string): Promise<string[]> {
+  if (!isTauri) return [];
+  return ipc.fetchPlaylist(ip);
+}
+
 /** Reproduce un archivo (PLAY:<file>). */
 export async function playFile(ip: string, file: string): Promise<void> {
   if (!isTauri) return;

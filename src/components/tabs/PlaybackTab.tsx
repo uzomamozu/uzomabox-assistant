@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Layers, Play, RefreshCw, Square, Trash2 } from 'lucide-react';
+import { Check, Download, Layers, Play, RefreshCw, Save, Square, Trash2 } from 'lucide-react';
 import { t } from '../../i18n';
-import { deleteFile, fetchFileList, playFile } from '../../lib/actions';
+import { deleteFile, fetchFileList, fetchPlaylist, playFile } from '../../lib/actions';
 import { useSyncedValue } from '../../lib/hooks';
 import { ipc, isTauri } from '../../lib/ipc';
 import { formatSize } from '../../lib/protocol';
@@ -19,11 +19,11 @@ export default function PlaybackTab({ ip }: { ip: string }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // --- Playlist (M6.1): archivos seleccionados con toggle ---
-  // Persiste en SD vía PLAYLIST=<csv>; PLAY:SELECTED lee de SD.
+  // Persiste en SD solo al pulsar "Guardar playlist".
   const [checked, setChecked] = useState<Set<string>>(new Set());
-  const playlistTimer = useRef<number | undefined>(undefined);
-  const playlistLoaded = useRef(false);
-  useEffect(() => () => window.clearTimeout(playlistTimer.current), []);
+  const [playlistDirty, setPlaylistDirty] = useState(false);
+  const [playlistSaving, setPlaylistSaving] = useState(false);
+  const [playlistLoading, setPlaylistLoading] = useState(false);
 
   const isV2 = Number(status?.proto ?? 1) >= 2;
 
@@ -36,16 +36,6 @@ export default function PlaybackTab({ ip }: { ip: string }) {
         setListError(t.playback.listError(String(err)));
       });
   }, [ip]);
-
-  // Query playlist from firmware on first connect (proto>=2 only).
-  // Best-effort: the playlist persists on SD; checkboxes are cosmetic.
-  useEffect(() => {
-    if (!isV2 || !isTauri || conn !== 'connected' || playlistLoaded.current) return;
-    playlistLoaded.current = true;
-    // We send PLAYLIST? and the response arrives as rx log lines.
-    // For now, checkboxes start empty — the SD copy is authoritative.
-    void ipc.sendCommand(ip, 'PLAYLIST?').catch(() => undefined);
-  }, [ip, isV2, conn]);
 
   // Carga al entrar (y al recuperar la conexión).
   useEffect(() => {
@@ -86,8 +76,7 @@ export default function PlaybackTab({ ip }: { ip: string }) {
       .then(() => {
         setChecked((prev) => {
           const next = new Set(prev);
-          next.delete(file);
-          sendPlaylistNow(next);
+          if (next.delete(file)) setPlaylistDirty(true);
           return next;
         });
         if (selected === file) setSelected(null);
@@ -95,33 +84,49 @@ export default function PlaybackTab({ ip }: { ip: string }) {
       });
   };
 
-  // Send full playlist CSV to firmware (debounced 500ms).
-  const sendPlaylistNow = (set_: Set<string>) => {
-    const csv = [...set_].join(',');
-    if (csv.length > 0 && csv.length <= 240) {
-      send(`PLAYLIST=${csv}`);
-    } else if (set_.size === 0) {
-      send('PLAYLIST:CLEAR');
-    }
-  };
-
-  const sendPlaylist = (set_: Set<string>) => {
-    window.clearTimeout(playlistTimer.current);
-    playlistTimer.current = window.setTimeout(() => sendPlaylistNow(set_), 500);
-  };
-
   const toggleFile = (file: string) => {
     setChecked((prev) => {
       const next = new Set(prev);
       if (next.has(file)) next.delete(file);
       else next.add(file);
-      sendPlaylist(next);
+      setPlaylistDirty(true);
       return next;
     });
   };
 
+  // Save playlist to device SD card.
+  const savePlaylist = () => {
+    const csv = [...checked].join(',');
+    if (csv.length > 240) return;
+    setPlaylistSaving(true);
+    if (checked.size > 0) {
+      send(`PLAYLIST=${csv}`);
+    } else {
+      send('PLAYLIST:CLEAR');
+    }
+    // The firmware processes this synchronously; give it a moment.
+    window.setTimeout(() => {
+      setPlaylistDirty(false);
+      setPlaylistSaving(false);
+    }, 600);
+  };
+
+  // Load playlist from device SD card.
+  const loadPlaylist = () => {
+    setPlaylistLoading(true);
+    fetchPlaylist(ip)
+      .then((names) => {
+        setChecked(new Set(names));
+        setPlaylistDirty(false);
+      })
+      .catch(() => {
+        setChecked(new Set());
+        setPlaylistDirty(false);
+      })
+      .finally(() => setPlaylistLoading(false));
+  };
+
   const checkedCount = checked.size;
-  const checkedList = [...checked].join(',');
 
   return (
     <TabShell ip={ip}>
@@ -210,13 +215,39 @@ export default function PlaybackTab({ ip }: { ip: string }) {
               </div>
             ))}
           </div>
-          <div className="mt-3 flex flex-col gap-2">
-            {/* Play Selected (proto>=2) */}
-            {isV2 && (
+
+          {/* Playlist actions (proto>=2) */}
+          {isV2 && (
+            <div className="mt-3 space-y-2">
+              {/* Save / Load row */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn flex-1 justify-center"
+                  disabled={!playlistDirty || playlistSaving}
+                  onClick={savePlaylist}
+                  title={t.playlist.saveHint}
+                >
+                  <Save size={14} />
+                  {playlistSaving ? t.playlist.saving : t.playlist.save}
+                  {playlistDirty && <span className="ml-1 text-accent">*</span>}
+                </button>
+                <button
+                  type="button"
+                  className="btn flex-1 justify-center"
+                  disabled={playlistLoading}
+                  onClick={loadPlaylist}
+                  title={t.playlist.loadHint}
+                >
+                  <Download size={14} />
+                  {playlistLoading ? t.playlist.loading : t.playlist.load}
+                </button>
+              </div>
+              {/* Play Selected */}
               <button
                 type="button"
                 className="btn w-full justify-center"
-                disabled={checkedCount === 0 || checkedList.length > 240}
+                disabled={checkedCount === 0}
                 onClick={() => send('PLAY:SELECTED')}
                 title={
                   checkedCount === 0
@@ -224,22 +255,30 @@ export default function PlaybackTab({ ip }: { ip: string }) {
                     : t.playlist.playSelectedHint(checkedCount)
                 }
               >
-                <Check size={15} />
+                <Play size={15} />
                 {t.playlist.playSelected(checkedCount)}
               </button>
-            )}
-            {/* Play All (proto>=2: enabled; v1: disabled with hint) */}
-            <button
-              type="button"
-              className="btn w-full justify-center"
-              disabled={!isV2 || (files?.length ?? 0) === 0}
-              onClick={() => send('PLAY:SEQUENCE')}
-              title={isV2 ? t.playback.playAllHintV2 : t.playback.playAllHint}
-            >
-              {t.playback.playAll}
-            </button>
-            {!isV2 && <p className="mt-1 text-xs text-muted">{t.playback.playAllHint}</p>}
-          </div>
+              {/* Play All */}
+              <button
+                type="button"
+                className="btn w-full justify-center"
+                disabled={(files?.length ?? 0) === 0}
+                onClick={() => send('PLAY:SEQUENCE')}
+                title={t.playback.playAllHintV2}
+              >
+                {t.playback.playAll}
+              </button>
+            </div>
+          )}
+          {/* v1 fallback */}
+          {!isV2 && (
+            <div className="mt-3">
+              <button type="button" className="btn w-full justify-center" disabled title={t.playback.playAllHint}>
+                {t.playback.playAll}
+              </button>
+              <p className="mt-1.5 text-xs text-muted">{t.playback.playAllHint}</p>
+            </div>
+          )}
         </Section>
 
         <div className="flex flex-col gap-4">
