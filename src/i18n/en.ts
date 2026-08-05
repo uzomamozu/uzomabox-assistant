@@ -94,13 +94,21 @@ export const en: Strings = {
     confirmDeleteTitle: 'Delete file',
     confirmDeleteBody: (file: string) => `“${file}” will be deleted from the device. Continue?`,
     playAll: 'Play all',
-    playAllHint: 'Not available on v1 firmware (PLAY:SEQUENCE is broken in the firmware); coming in protocol v2.',
+    playAllHint: 'Not available on v1 firmware (PLAY:SEQUENCE is broken in the firmware); upgrade to firmware v2.',
+    playAllHintV2: 'Play all recorded files in alphabetical order.',
     speed: 'Speed',
     progress: 'Progress',
     stop: 'Stop',
     nowPlaying: (file: string) => `Playing: ${file}`,
     nothingPlaying: 'Nothing playing.',
     listError: (err: string) => `Could not fetch the list: ${err}`,
+  },
+  playlist: {
+    select: 'Select for playback',
+    deselect: 'Remove from selection',
+    selectHint: 'Select at least one file to enable playback.',
+    playSelected: (n: number) => `Play selected (${n})`,
+    playSelectedHint: (n: number) => `Play the ${n} selected file${n !== 1 ? 's' : ''}.`,
   },
 
   grabacion: {

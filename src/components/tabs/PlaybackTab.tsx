@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Layers, Play, RefreshCw, Square, Trash2 } from 'lucide-react';
+import { Check, Layers, Play, RefreshCw, Square, Trash2 } from 'lucide-react';
 import { t } from '../../i18n';
 import { deleteFile, fetchFileList, playFile } from '../../lib/actions';
 import { useSyncedValue } from '../../lib/hooks';
@@ -18,6 +18,15 @@ export default function PlaybackTab({ ip }: { ip: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  // --- Playlist (M6.1): archivos seleccionados con toggle ---
+  // Persiste en SD vía PLAYLIST=<csv>; PLAY:SELECTED lee de SD.
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const playlistTimer = useRef<number | undefined>(undefined);
+  const playlistLoaded = useRef(false);
+  useEffect(() => () => window.clearTimeout(playlistTimer.current), []);
+
+  const isV2 = Number(status?.proto ?? 1) >= 2;
+
   const refresh = useCallback(() => {
     setListError('');
     fetchFileList(ip)
@@ -27,6 +36,16 @@ export default function PlaybackTab({ ip }: { ip: string }) {
         setListError(t.playback.listError(String(err)));
       });
   }, [ip]);
+
+  // Query playlist from firmware on first connect (proto>=2 only).
+  // Best-effort: the playlist persists on SD; checkboxes are cosmetic.
+  useEffect(() => {
+    if (!isV2 || !isTauri || conn !== 'connected' || playlistLoaded.current) return;
+    playlistLoaded.current = true;
+    // We send PLAYLIST? and the response arrives as rx log lines.
+    // For now, checkboxes start empty — the SD copy is authoritative.
+    void ipc.sendCommand(ip, 'PLAYLIST?').catch(() => undefined);
+  }, [ip, isV2, conn]);
 
   // Carga al entrar (y al recuperar la conexión).
   useEffect(() => {
@@ -65,10 +84,44 @@ export default function PlaybackTab({ ip }: { ip: string }) {
     void deleteFile(ip, file)
       .catch(() => undefined)
       .then(() => {
+        setChecked((prev) => {
+          const next = new Set(prev);
+          next.delete(file);
+          sendPlaylistNow(next);
+          return next;
+        });
         if (selected === file) setSelected(null);
         refresh();
       });
   };
+
+  // Send full playlist CSV to firmware (debounced 500ms).
+  const sendPlaylistNow = (set_: Set<string>) => {
+    const csv = [...set_].join(',');
+    if (csv.length > 0 && csv.length <= 240) {
+      send(`PLAYLIST=${csv}`);
+    } else if (set_.size === 0) {
+      send('PLAYLIST:CLEAR');
+    }
+  };
+
+  const sendPlaylist = (set_: Set<string>) => {
+    window.clearTimeout(playlistTimer.current);
+    playlistTimer.current = window.setTimeout(() => sendPlaylistNow(set_), 500);
+  };
+
+  const toggleFile = (file: string) => {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(file)) next.delete(file);
+      else next.add(file);
+      sendPlaylist(next);
+      return next;
+    });
+  };
+
+  const checkedCount = checked.size;
+  const checkedList = [...checked].join(',');
 
   return (
     <TabShell ip={ip}>
@@ -113,6 +166,24 @@ export default function PlaybackTab({ ip }: { ip: string }) {
                 }`}
                 onClick={() => setSelected(file)}
               >
+                {/* M6.1: checkbox for playlist selection (proto>=2) */}
+                {isV2 && (
+                  <button
+                    type="button"
+                    className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                      checked.has(file)
+                        ? 'border-accent bg-accent text-white'
+                        : 'border-muted hover:border-accent'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFile(file);
+                    }}
+                    title={checked.has(file) ? t.playlist.deselect : t.playlist.select}
+                  >
+                    {checked.has(file) && <Check size={12} strokeWidth={3} />}
+                  </button>
+                )}
                 <span className="flex-1 truncate font-mono text-xs">{file}</span>
                 <button
                   type="button"
@@ -139,11 +210,35 @@ export default function PlaybackTab({ ip }: { ip: string }) {
               </div>
             ))}
           </div>
-          <div className="mt-3">
-            <button type="button" className="btn w-full justify-center" disabled title={t.playback.playAllHint}>
+          <div className="mt-3 flex flex-col gap-2">
+            {/* Play Selected (proto>=2) */}
+            {isV2 && (
+              <button
+                type="button"
+                className="btn w-full justify-center"
+                disabled={checkedCount === 0 || checkedList.length > 240}
+                onClick={() => send('PLAY:SELECTED')}
+                title={
+                  checkedCount === 0
+                    ? t.playlist.selectHint
+                    : t.playlist.playSelectedHint(checkedCount)
+                }
+              >
+                <Check size={15} />
+                {t.playlist.playSelected(checkedCount)}
+              </button>
+            )}
+            {/* Play All (proto>=2: enabled; v1: disabled with hint) */}
+            <button
+              type="button"
+              className="btn w-full justify-center"
+              disabled={!isV2 || (files?.length ?? 0) === 0}
+              onClick={() => send('PLAY:SEQUENCE')}
+              title={isV2 ? t.playback.playAllHintV2 : t.playback.playAllHint}
+            >
               {t.playback.playAll}
             </button>
-            <p className="mt-1.5 text-xs text-muted">{t.playback.playAllHint}</p>
+            {!isV2 && <p className="mt-1 text-xs text-muted">{t.playback.playAllHint}</p>}
           </div>
         </Section>
 

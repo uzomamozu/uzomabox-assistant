@@ -95,13 +95,21 @@ export const t = {
     confirmDeleteTitle: 'Eliminar archivo',
     confirmDeleteBody: (file: string) => `Se eliminará «${file}» del dispositivo. ¿Continuar?`,
     playAll: 'Reproducir todo',
-    playAllHint: 'No disponible en firmware v1 (PLAY:SEQUENCE está roto en el firmware); llega en protocolo v2.',
+    playAllHint: 'No disponible en firmware v1 (PLAY:SEQUENCE está roto en el firmware); actualice a firmware v2.',
+    playAllHintV2: 'Reproduce todos los archivos grabados en orden alfabético.',
     speed: 'Velocidad',
     progress: 'Progreso',
     stop: 'Detener',
     nowPlaying: (file: string) => `Reproduciendo: ${file}`,
     nothingPlaying: 'Nada en reproducción.',
     listError: (err: string) => `No se pudo obtener la lista: ${err}`,
+  },
+  playlist: {
+    select: 'Seleccionar para reproducción',
+    deselect: 'Quitar de la selección',
+    selectHint: 'Seleccione al menos un archivo para habilitar la reproducción.',
+    playSelected: (n: number) => `Reproducir seleccionados (${n})`,
+    playSelectedHint: (n: number) => `Reproduce los ${n} archivo${n !== 1 ? 's' : ''} seleccionados.`,
   },
 
   grabacion: {
