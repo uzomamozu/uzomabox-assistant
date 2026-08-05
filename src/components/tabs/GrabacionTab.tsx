@@ -37,11 +37,12 @@ export default function GrabacionTab({ ip }: { ip: string }) {
   };
 
   // --- Triggers (volátiles en v1: no legibles, estado local con envío inmediato) ---
-  const [startMode, setStartMode] = useState(0);
-  const [trigUniv, setTrigUniv] = useState('0');
-  const [trigCh, setTrigCh] = useState('0');
-  const [stopMode, setStopMode] = useState(0);
-  const [stopSecs, setStopSecs] = useState('30');
+  // Bug 2 fix: initialize from STATUS so reconnection / OLED changes are reflected.
+  const [startMode, setStartMode] = useState(() => Number(status?.rec_start_mode ?? 0));
+  const [trigUniv, setTrigUniv] = useState(() => status?.rec_trig_univ ?? '0');
+  const [trigCh, setTrigCh] = useState(() => status?.rec_trig_ch ?? '0');
+  const [stopMode, setStopMode] = useState(() => Number(status?.rec_stop_mode ?? 0));
+  const [stopSecs, setStopSecs] = useState(() => status?.rec_stop_secs ?? '30');
   const trigTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(trigTimer.current), []);
 
@@ -63,7 +64,8 @@ export default function GrabacionTab({ ip }: { ip: string }) {
   const changeSecs = (value: string) => {
     setStopSecs(value);
     const n = Number(value);
-    if (Number.isInteger(n) && n >= 1 && n <= 999) sendDebounced(`REC:STOP_SECS=${n}`);
+    // Bug 3 fix: align with firmware validation range (0..86400; 0 = timer disabled)
+    if (Number.isInteger(n) && n >= 1 && n <= 86400) sendDebounced(`REC:STOP_SECS=${n}`);
   };
 
   const mode = status?.mode ?? '';
@@ -213,6 +215,15 @@ export default function GrabacionTab({ ip }: { ip: string }) {
                     const n = Number(e.target.value);
                     setStopMode(n);
                     send(`REC:STOP_MODE=${n}`);
+                    // Bug 1 fix: when switching to timer mode, also send the
+                    // current stopSecs so the firmware always has a valid
+                    // non-zero value (recParams.stopSecs defaults to 0).
+                    if (n === 2) {
+                      const secs = Number(stopSecs);
+                      if (Number.isInteger(secs) && secs >= 1 && secs <= 86400) {
+                        send(`REC:STOP_SECS=${secs}`);
+                      }
+                    }
                   }}
                 >
                   {t.grabacion.stopModes.map((label, n) => (
@@ -222,7 +233,7 @@ export default function GrabacionTab({ ip }: { ip: string }) {
                   ))}
                 </select>
               </Field>
-              <Field label={`${t.grabacion.seconds} (1–999)`}>
+              <Field label={`${t.grabacion.seconds} (1–86400)`}>
                 <input
                   className="input w-full font-mono"
                   inputMode="numeric"
