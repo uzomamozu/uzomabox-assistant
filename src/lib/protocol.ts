@@ -11,6 +11,10 @@ export const LED_WIDTH_MAX = 1020;
 export const START_UNIVERSE_MIN = 0;
 export const START_UNIVERSE_MAX = 255;
 
+/** Universo de la salida DMX512 (proto>=2): entero en 0..32767. */
+export const DMX_UNIVERSE_MIN = 0;
+export const DMX_UNIVERSE_MAX = 32767;
+
 export const COLOR_ORDERS = ['RGB', 'GRB', 'BGR', 'RBG', 'GBR', 'BRG'] as const;
 export type ColorOrder = (typeof COLOR_ORDERS)[number];
 
@@ -51,6 +55,11 @@ export function isValidLedWidth(n: number): boolean {
 /** Universo inicial por salida: entero en 0..255. */
 export function isValidStartUniverse(n: number): boolean {
   return Number.isInteger(n) && n >= START_UNIVERSE_MIN && n <= START_UNIVERSE_MAX;
+}
+
+/** Universo de la salida DMX512 (proto>=2): entero en 0..32767. */
+export function isValidDmxUniverse(n: number): boolean {
+  return Number.isInteger(n) && n >= DMX_UNIVERSE_MIN && n <= DMX_UNIVERSE_MAX;
 }
 
 /** Parsea un CSV de exactamente `expected` enteros. Devuelve null si no cuadra. */

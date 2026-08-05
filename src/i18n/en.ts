@@ -199,6 +199,14 @@ export const en: Strings = {
     fpsLabel: 'ArtNet fps',
   },
 
+  dmx: {
+    title: 'DMX512 output',
+    enable: 'DMX output enabled',
+    universe: 'DMX universe',
+    universeHint: 'Valid range: 0–32767. The DMX512 output mirrors this Art-Net universe.',
+    universeInvalid: 'Enter an integer between 0 and 32767',
+  },
+
   test: {
     pattern: 'Test pattern',
     patterns: ['RGBW cycle', 'Rainbow fade', 'Red', 'Green', 'Blue'],

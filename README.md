@@ -43,6 +43,12 @@ Otros scripts:
 - `npm run dev` — solo el frontend (Vite, <http://localhost:5173>), con datos de demostración si no hay backend Tauri.
 - `npm run build` — typecheck (tsc) + build de producción del frontend.
 - `npm run sim` — simulador UzomaBox sin dependencias (`simulator/uzomabox-sim.mjs`).
+  - Modo **protocolo v2** (firmware nuevo M5+): `npm run sim -- --proto2` (o
+    `UZOMA_SIM_PROTO=2`). Añade `HELLO`, `proto=2`/`mac`/`temp` en STATUS,
+    patrones de test 5–6 y los comandos **DMX512** (`DMX:ENABLE=0|1`,
+    `DMX:UNIVERSE=n`) con su estado reflejado en `dmx_enabled`/`dmx_universe`
+    — permite probar la sección DMX de la pestaña ArtNet (visible solo con
+    `proto≥2`) sin hardware. El modo por defecto sigue siendo v1 puro.
 
 ## Estructura del proyecto
 

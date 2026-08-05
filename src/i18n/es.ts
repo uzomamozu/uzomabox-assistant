@@ -202,6 +202,14 @@ export const t = {
     fpsLabel: 'fps ArtNet',
   },
 
+  dmx: {
+    title: 'Salida DMX512',
+    enable: 'Salida DMX habilitada',
+    universe: 'Universo DMX',
+    universeHint: 'Rango válido: 0–32767. La salida DMX512 replica este universo Art-Net.',
+    universeInvalid: 'Introduzca un entero entre 0 y 32767',
+  },
+
   test: {
     pattern: 'Patrón de test',
     patterns: ['Ciclo RGBW', 'Fade arcoíris', 'Rojo', 'Verde', 'Azul'],

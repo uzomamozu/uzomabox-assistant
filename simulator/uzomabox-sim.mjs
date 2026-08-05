@@ -6,6 +6,10 @@
  * - TCP 8888: ONE client at a time; sends `OK:connected` on connect.
  * - In-memory state for mode, recording, playback, config and test commands.
  *
+ * Optional v2 mode (`--proto2` flag or UZOMA_SIM_PROTO=2 env var): answers
+ * `HELLO`, adds `proto`/`mac`/`temp`/`dmx_enabled`/`dmx_universe` to STATUS
+ * and handles `DMX:ENABLE=`/`DMX:UNIVERSE=` (DMX512 output, firmware M6).
+ *
  * Zero dependencies. Run with: npm run sim
  */
 import dgram from 'node:dgram';
@@ -14,6 +18,7 @@ import os from 'node:os';
 
 const UDP_PORT = Number(process.env.UZOMA_SIM_UDP_PORT) || 7777;
 const TCP_PORT = Number(process.env.UZOMA_SIM_TCP_PORT) || 8888;
+const PROTO2 = process.argv.includes('--proto2') || process.env.UZOMA_SIM_PROTO === '2';
 const FIRMWARE = '2.0.0';
 const COLOR_ORDERS = ['RGB', 'GRB', 'BGR', 'RBG', 'GBR', 'BRG'];
 const MODES = ['artnet', 'playback', 'record', 'test'];
@@ -64,6 +69,8 @@ const state = {
   output_count: 8,
   test_pattern: 0,
   test_output: 255,
+  dmx_enabled: 0,
+  dmx_universe: 0,
   rec: { start_mode: 0, stop_mode: 0, trigger_univ: 0, trigger_ch: 0, stop_secs: 0 },
   output_active: Array.from({ length: 16 }, (_, i) => (i < 8 ? 1 : 0)),
   start_universe: Array.from({ length: 16 }, (_, i) => i * 6),
@@ -122,7 +129,7 @@ let currentClient = null;
 let rebootUntil = 0;
 
 function statusDump() {
-  return [
+  const lines = [
     `mode=${state.mode}`,
     `ip=${state.ip}`,
     `led_width=${state.led_width}`,
@@ -143,6 +150,16 @@ function statusDump() {
     `output_active=${state.output_active.join(',')}`,
     `output_count=${state.output_count}`,
   ];
+  if (PROTO2) {
+    lines.push(
+      'proto=2',
+      `mac=${state.mac}`,
+      `temp=${state.temp}`,
+      `dmx_enabled=${state.dmx_enabled}`,
+      `dmx_universe=${state.dmx_universe}`,
+    );
+  }
+  return lines;
 }
 
 function parseCsvInts(value, expected, min, max) {
@@ -159,6 +176,8 @@ function handleCommand(line) {
   if (line === 'NUM_OUTPUTS?') return ['OUTPUTS=8,16'];
   if (line === 'IDENTIFY') return ['OK:IDENTIFY'];
   if (line === 'STATUS') return statusDump();
+  // v2 only: v1 firmware has no HELLO (answers ERR:unknown).
+  if (PROTO2 && line === 'HELLO') return ['OK:HELLO proto=2 fw=2.0.0-sim'];
   if (line === 'STOP') {
     state.playing = false;
     return ['OK:STOP'];
@@ -307,6 +326,22 @@ function handleCommand(line) {
     return [`OK:TEST_OUTPUT=${n}`];
   }
 
+  // v2 only: DMX512 output (firmware M6). Values persist in state so the
+  // next STATUS dump reflects them.
+  if (PROTO2 && line.startsWith('DMX:ENABLE=')) {
+    const raw = line.split('=')[1];
+    if (raw !== '0' && raw !== '1') return ['ERR:range'];
+    state.dmx_enabled = Number(raw);
+    return [`OK:DMX:ENABLE=${raw}`];
+  }
+  if (PROTO2 && line.startsWith('DMX:UNIVERSE=')) {
+    const raw = line.split('=')[1];
+    const n = Number(raw);
+    if (raw === '' || !Number.isInteger(n) || n < 0 || n > 32767) return ['ERR:range'];
+    state.dmx_universe = n;
+    return [`OK:DMX:UNIVERSE=${n}`];
+  }
+
   return ['ERR:unknown'];
 }
 
@@ -371,5 +406,7 @@ server.on('error', (err) => {
 });
 
 server.listen(TCP_PORT, () => {
-  log(`UzomaBox simulator ready — UDP ${UDP_PORT}, TCP ${TCP_PORT}, identity ${state.model}/${state.nick} @ ${state.ip}`);
+  log(
+    `UzomaBox simulator ready — UDP ${UDP_PORT}, TCP ${TCP_PORT}, identity ${state.model}/${state.nick} @ ${state.ip}${PROTO2 ? ' (proto=2, DMX512)' : ''}`,
+  );
 });

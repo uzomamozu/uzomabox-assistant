@@ -5,6 +5,7 @@ import {
   clampTestOutput,
   computeOutputRow,
   formatSize,
+  isValidDmxUniverse,
   isValidIpv4,
   isValidLedWidth,
   isValidMac,
@@ -65,6 +66,14 @@ describe('isValidLedWidth / isValidStartUniverse', () => {
     expect(isValidStartUniverse(255)).toBe(true);
     expect(isValidStartUniverse(-1)).toBe(false);
     expect(isValidStartUniverse(256)).toBe(false);
+  });
+  it('dmx_universe en 0..32767 (proto>=2)', () => {
+    expect(isValidDmxUniverse(0)).toBe(true);
+    expect(isValidDmxUniverse(32767)).toBe(true);
+    expect(isValidDmxUniverse(-1)).toBe(false);
+    expect(isValidDmxUniverse(32768)).toBe(false);
+    expect(isValidDmxUniverse(1.5)).toBe(false);
+    expect(isValidDmxUniverse(NaN)).toBe(false);
   });
 });
 
